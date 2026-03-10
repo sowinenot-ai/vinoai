@@ -5,6 +5,7 @@ const GOLD = "#C9A84C";
 const CREAM = "#F5ECD7";
 const DARK = "#0D0A08";
 const MUTED = "#3A2D28";
+const FREE_LIMIT = 3;
 
 const CELLAR_INIT = [
   { id: 1, name: "Barolo DOCG", producer: "Giacomo Conterno", year: 2017, region: "Piemonte", qty: 3, notes: "Aprire dal 2025" },
@@ -21,7 +22,6 @@ const SUGGESTIONS = [
   { icon: "🥩", text: "Miglior vino per una bistecca fiorentina?" },
 ];
 
-// ✅ Chiama il nostro endpoint sicuro — la API key non è mai esposta
 async function askClaude(messages) {
   const res = await fetch("/api/chat", {
     method: "POST",
@@ -33,11 +33,22 @@ async function askClaude(messages) {
   return data.reply;
 }
 
-function Spinner() {
+async function analyzeGem(payload) {
+  const res = await fetch("/api/gems", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data.reply;
+}
+
+function Spinner({ text = "Il sommelier sta riflettendo..." }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, color: GOLD, fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic" }}>
       <div style={{ width: 18, height: 18, border: `2px solid ${GOLD}`, borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-      Il sommelier sta riflettendo...
+      {text}
     </div>
   );
 }
@@ -49,17 +60,18 @@ function ChatBubble({ msg }) {
       {!isUser && (
         <div style={{ width: 36, height: 36, borderRadius: "50%", background: `linear-gradient(135deg, ${BURGUNDY}, #9B2335)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0, marginRight: 10, marginTop: 2, border: `1px solid ${GOLD}33` }}>🍷</div>
       )}
-      <div style={{ maxWidth: "72%", background: isUser ? `linear-gradient(135deg, ${BURGUNDY}, #9B2335)` : `${MUTED}88`, border: `1px solid ${isUser ? BURGUNDY : GOLD + "33"}`, borderRadius: isUser ? "18px 18px 4px 18px" : "18px 18px 18px 4px", padding: "12px 16px", color: isUser ? CREAM : "#E8D9BF", fontFamily: isUser ? "'Cormorant Garamond', serif" : "Georgia, serif", fontSize: isUser ? 15 : 14.5, lineHeight: 1.65, backdropFilter: "blur(8px)" }}>
+      <div style={{ maxWidth: "72%", background: isUser ? `linear-gradient(135deg, ${BURGUNDY}, #9B2335)` : `${MUTED}88`, border: `1px solid ${isUser ? BURGUNDY : GOLD + "33"}`, borderRadius: isUser ? "18px 18px 4px 18px" : "18px 18px 18px 4px", padding: "12px 16px", color: isUser ? CREAM : "#E8D9BF", fontFamily: "Georgia, serif", fontSize: 14.5, lineHeight: 1.65, backdropFilter: "blur(8px)", whiteSpace: "pre-wrap" }}>
         {msg.content}
       </div>
     </div>
   );
 }
 
-function TabButton({ active, onClick, children, icon }) {
+function TabButton({ active, onClick, children, icon, badge }) {
   return (
-    <button onClick={onClick} style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 20px", borderRadius: 30, background: active ? `linear-gradient(135deg, ${BURGUNDY}, #9B2335)` : "transparent", border: `1px solid ${active ? BURGUNDY : GOLD + "44"}`, color: active ? CREAM : GOLD + "99", fontFamily: "'Cormorant Garamond', serif", fontSize: 14, fontWeight: active ? 600 : 400, cursor: "pointer", transition: "all 0.25s ease", letterSpacing: "0.04em" }}>
+    <button onClick={onClick} style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 18px", borderRadius: 30, background: active ? `linear-gradient(135deg, ${BURGUNDY}, #9B2335)` : "transparent", border: `1px solid ${active ? BURGUNDY : GOLD + "44"}`, color: active ? CREAM : GOLD + "99", fontFamily: "'Cormorant Garamond', serif", fontSize: 14, fontWeight: active ? 600 : 400, cursor: "pointer", transition: "all 0.25s ease", letterSpacing: "0.04em", position: "relative" }}>
       <span>{icon}</span> {children}
+      {badge && <span style={{ position: "absolute", top: -6, right: -6, background: GOLD, color: DARK, fontSize: 10, fontWeight: 700, borderRadius: "50%", width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>{badge}</span>}
     </button>
   );
 }
@@ -74,6 +86,7 @@ export default function VinoAI() {
   const [addingWine, setAddingWine] = useState(false);
   const [cellarAdvice, setCellarAdvice] = useState("");
   const [cellarLoading, setCellarLoading] = useState(false);
+  const [gemAnalyses, setGemAnalyses] = useState(0);
   const bottomRef = useRef();
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
@@ -113,6 +126,7 @@ export default function VinoAI() {
   }
 
   const inputStyle = { background: `${MUTED}55`, border: `1px solid ${GOLD}33`, borderRadius: 8, padding: "8px 12px", color: CREAM, fontFamily: "Georgia, serif", fontSize: 13, outline: "none", width: "100%", boxSizing: "border-box" };
+  const remaining = Math.max(0, FREE_LIMIT - gemAnalyses);
 
   return (
     <div style={{ minHeight: "100vh", background: DARK, backgroundImage: `radial-gradient(ellipse at 20% 20%, #2A0A1488 0%, transparent 60%), radial-gradient(ellipse at 80% 80%, #1A0A0566 0%, transparent 60%)`, fontFamily: "Georgia, serif", color: CREAM, display: "flex", flexDirection: "column" }}>
@@ -121,6 +135,7 @@ export default function VinoAI() {
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes shimmer { 0%,100% { opacity: 0.6; } 50% { opacity: 1; } }
+        @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.02); } }
         * { box-sizing: border-box; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -144,9 +159,10 @@ export default function VinoAI() {
 
       <div style={{ padding: "16px 32px 0", maxWidth: 800, margin: "0 auto", width: "100%" }}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <TabButton active={tab === "chat"} onClick={() => setTab("chat")} icon="💬">Sommelier Chat</TabButton>
-          <TabButton active={tab === "cellar"} onClick={() => setTab("cellar")} icon="🏺">La mia Cantina</TabButton>
+          <TabButton active={tab === "chat"} onClick={() => setTab("chat")} icon="💬">Sommelier</TabButton>
+          <TabButton active={tab === "cellar"} onClick={() => setTab("cellar")} icon="🏺">Cantina</TabButton>
           <TabButton active={tab === "pairing"} onClick={() => setTab("pairing")} icon="🍽️">Abbinamenti</TabButton>
+          <TabButton active={tab === "gems"} onClick={() => setTab("gems")} icon="💎" badge={remaining > 0 ? remaining : null}>Perle Nascoste</TabButton>
         </div>
       </div>
 
@@ -170,9 +186,7 @@ export default function VinoAI() {
             </div>
             <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
               <textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} placeholder="Chiedi al tuo sommelier..." rows={2} style={{ ...inputStyle, resize: "none", flex: 1, padding: "12px 16px", borderRadius: 12, lineHeight: 1.5, fontSize: 14 }} />
-              <button onClick={() => sendMessage()} disabled={loading || !input.trim()} style={{ padding: "12px 22px", borderRadius: 12, background: loading || !input.trim() ? `${MUTED}88` : `linear-gradient(135deg, ${BURGUNDY}, #9B2335)`, border: `1px solid ${BURGUNDY}`, color: CREAM, cursor: loading ? "not-allowed" : "pointer", fontFamily: "'Cormorant Garamond', serif", fontSize: 15, transition: "all 0.2s", whiteSpace: "nowrap" }}>
-                Invia →
-              </button>
+              <button onClick={() => sendMessage()} disabled={loading || !input.trim()} style={{ padding: "12px 22px", borderRadius: 12, background: loading || !input.trim() ? `${MUTED}88` : `linear-gradient(135deg, ${BURGUNDY}, #9B2335)`, border: `1px solid ${BURGUNDY}`, color: CREAM, cursor: loading ? "not-allowed" : "pointer", fontFamily: "'Cormorant Garamond', serif", fontSize: 15, transition: "all 0.2s", whiteSpace: "nowrap" }}>Invia →</button>
             </div>
           </div>
         )}
@@ -201,7 +215,7 @@ export default function VinoAI() {
             )}
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {cellar.map(w => (
-                <div key={w.id} style={{ background: `${MUTED}33`, borderRadius: 12, padding: "14px 18px", border: `1px solid ${GOLD}22`, display: "flex", justifyContent: "space-between", alignItems: "center", animation: "fadeUp 0.3s ease" }}>
+                <div key={w.id} style={{ background: `${MUTED}33`, borderRadius: 12, padding: "14px 18px", border: `1px solid ${GOLD}22`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                     <div style={{ width: 44, height: 44, borderRadius: 8, background: `linear-gradient(135deg, ${BURGUNDY}88, #9B233566)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, border: `1px solid ${GOLD}33`, flexShrink: 0 }}>🍾</div>
                     <div>
@@ -217,11 +231,11 @@ export default function VinoAI() {
                 </div>
               ))}
             </div>
-            <button onClick={getCellarAdvice} disabled={cellarLoading} style={{ width: "100%", padding: "14px", background: cellarLoading ? `${MUTED}88` : `linear-gradient(135deg, ${BURGUNDY}88, #9B233566)`, border: `1px solid ${GOLD}44`, borderRadius: 12, color: GOLD, fontFamily: "'Cormorant Garamond', serif", fontSize: 15, cursor: cellarLoading ? "not-allowed" : "pointer", letterSpacing: "0.05em" }}>
-              {cellarLoading ? "🍷 Il sommelier analizza la tua cantina..." : "✦ Chiedi consiglio al sommelier sulla mia cantina"}
+            <button onClick={getCellarAdvice} disabled={cellarLoading} style={{ width: "100%", padding: "14px", background: cellarLoading ? `${MUTED}88` : `linear-gradient(135deg, ${BURGUNDY}88, #9B233566)`, border: `1px solid ${GOLD}44`, borderRadius: 12, color: GOLD, fontFamily: "'Cormorant Garamond', serif", fontSize: 15, cursor: cellarLoading ? "not-allowed" : "pointer" }}>
+              {cellarLoading ? "🍷 Analisi in corso..." : "✦ Chiedi consiglio al sommelier sulla mia cantina"}
             </button>
             {cellarAdvice && (
-              <div style={{ padding: 20, background: `${MUTED}44`, borderRadius: 12, border: `1px solid ${GOLD}33`, color: "#E8D9BF", fontSize: 14, lineHeight: 1.7, fontFamily: "Georgia, serif", animation: "fadeUp 0.4s ease", borderLeft: `3px solid ${GOLD}88` }}>
+              <div style={{ padding: 20, background: `${MUTED}44`, borderRadius: 12, border: `1px solid ${GOLD}33`, color: "#E8D9BF", fontSize: 14, lineHeight: 1.7, fontFamily: "Georgia, serif", animation: "fadeUp 0.4s ease", borderLeft: `3px solid ${GOLD}88`, whiteSpace: "pre-wrap" }}>
                 {cellarAdvice}
               </div>
             )}
@@ -229,67 +243,130 @@ export default function VinoAI() {
         )}
 
         {tab === "pairing" && <PairingTab askClaude={askClaude} />}
+        {tab === "gems" && <GemsTab analyzeGem={analyzeGem} gemAnalyses={gemAnalyses} setGemAnalyses={setGemAnalyses} freeLimit={FREE_LIMIT} />}
       </main>
     </div>
   );
 }
 
 function PairingTab({ askClaude }) {
-  const [food, setFood] = useState("");
-  const [result, setResult] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState("food");
-
+  const [food, setFood] = useState(""); const [result, setResult] = useState(""); const [loading, setLoading] = useState(false); const [mode, setMode] = useState("food");
   const FOOD_EXAMPLES = ["Pasta al tartufo bianco", "Ossobuco alla milanese", "Salmone al forno", "Tiramisù", "Pizza Margherita"];
   const WINE_EXAMPLES = ["Barolo 2016", "Pinot Grigio del Trentino", "Chianti Classico Riserva", "Prosecco di Valdobbiadene"];
-
   async function getPairing() {
-    if (!food.trim() || loading) return;
-    setLoading(true);
-    setResult("");
-    try {
-      const prompt = mode === "food"
-        ? `Suggerisci i 3 vini ideali da abbinare a: "${food}". Per ognuno: nome specifico, produttore consigliato, prezzo indicativo e motivo dell'abbinamento.`
-        : `Ho il vino: "${food}". Suggerisci 4 piatti perfetti da abbinare, con una breve spiegazione per ognuno.`;
-      const reply = await askClaude([{ role: "user", content: prompt }]);
-      setResult(reply);
-    } catch { setResult("Errore. Riprova."); }
+    if (!food.trim() || loading) return; setLoading(true); setResult("");
+    try { setResult(await askClaude([{ role: "user", content: mode === "food" ? `Suggerisci i 3 vini ideali da abbinare a: "${food}". Per ognuno: nome specifico, produttore consigliato, prezzo indicativo e motivo dell'abbinamento.` : `Ho il vino: "${food}". Suggerisci 4 piatti perfetti da abbinare, con una breve spiegazione per ognuno.` }])); } catch { setResult("Errore. Riprova."); }
     setLoading(false);
   }
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <div><h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 24, fontWeight: 600, margin: "0 0 6px", color: CREAM }}>Abbinamenti Perfetti</h2><p style={{ margin: 0, fontSize: 13, color: CREAM + "66", fontStyle: "italic" }}>Dì cosa mangi e ti suggerisco il vino. O viceversa.</p></div>
+      <div style={{ display: "flex", background: `${MUTED}44`, borderRadius: 10, padding: 4, border: `1px solid ${GOLD}22` }}>
+        {[{ key: "food", label: "🍽️  Ho un piatto" }, { key: "wine", label: "🍷  Ho un vino" }].map(m => (
+          <button key={m.key} onClick={() => { setMode(m.key); setFood(""); setResult(""); }} style={{ flex: 1, padding: "9px", borderRadius: 7, background: mode === m.key ? `linear-gradient(135deg, ${BURGUNDY}, #9B2335)` : "transparent", border: "none", color: mode === m.key ? CREAM : CREAM + "66", fontFamily: "'Cormorant Garamond', serif", fontSize: 14, cursor: "pointer" }}>{m.label}</button>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{(mode === "food" ? FOOD_EXAMPLES : WINE_EXAMPLES).map((ex, i) => (<button key={i} onClick={() => setFood(ex)} style={{ padding: "6px 12px", borderRadius: 16, background: food === ex ? `${BURGUNDY}88` : `${MUTED}55`, border: `1px solid ${food === ex ? BURGUNDY : GOLD + "22"}`, color: CREAM + "CC", fontSize: 12, cursor: "pointer", fontFamily: "Georgia, serif" }}>{ex}</button>))}</div>
+      <div style={{ display: "flex", gap: 10 }}>
+        <input value={food} onChange={e => setFood(e.target.value)} onKeyDown={e => e.key === "Enter" && getPairing()} placeholder={mode === "food" ? "Es: Tagliatelle al ragù..." : "Es: Amarone 2015..."} style={{ flex: 1, background: `${MUTED}55`, border: `1px solid ${GOLD}33`, borderRadius: 10, padding: "12px 16px", color: CREAM, fontFamily: "Georgia, serif", fontSize: 14, outline: "none" }} />
+        <button onClick={getPairing} disabled={loading || !food.trim()} style={{ padding: "12px 22px", borderRadius: 10, background: loading || !food.trim() ? `${MUTED}88` : `linear-gradient(135deg, ${BURGUNDY}, #9B2335)`, border: `1px solid ${BURGUNDY}`, color: CREAM, fontFamily: "'Cormorant Garamond', serif", fontSize: 15, cursor: "pointer" }}>{loading ? "..." : "Abbina →"}</button>
+      </div>
+      {loading && <Spinner text="Selezione abbinamento in corso..." />}
+      {result && <div style={{ background: `${MUTED}44`, borderRadius: 16, padding: 24, border: `1px solid ${GOLD}33`, borderLeft: `3px solid ${GOLD}`, color: "#E8D9BF", fontSize: 14, lineHeight: 1.8, fontFamily: "Georgia, serif", whiteSpace: "pre-wrap" }}>{result}</div>}
+    </div>
+  );
+}
+
+function GemsTab({ analyzeGem, gemAnalyses, setGemAnalyses, freeLimit }) {
+  const [mode, setMode] = useState("manual");
+  const [label, setLabel] = useState(""); const [vintage, setVintage] = useState(""); const [price, setPrice] = useState("");
+  const [image, setImage] = useState(null); const [imagePreview, setImagePreview] = useState(null);
+  const [result, setResult] = useState(""); const [loading, setLoading] = useState(false);
+  const fileRef = useRef();
+  const remaining = Math.max(0, freeLimit - gemAnalyses);
+  const isPremium = gemAnalyses >= freeLimit;
+
+  function handlePhoto(e) {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => { setImage(ev.target.result.split(",")[1]); setImagePreview(ev.target.result); };
+    reader.readAsDataURL(file);
+  }
+
+  async function analyze() {
+    if (isPremium || loading) return;
+    if (mode === "manual" && (!label || !price)) return;
+    if (mode === "photo" && !image) return;
+    setLoading(true); setResult("");
+    try {
+      const payload = mode === "photo" ? { imageBase64: image } : { label, vintage: parseInt(vintage) || new Date().getFullYear(), price: parseFloat(price) };
+      setResult(await analyzeGem(payload));
+      setGemAnalyses(prev => prev + 1);
+    } catch { setResult("Errore nell'analisi. Riprova."); }
+    setLoading(false);
+  }
+
+  const iStyle = { background: `${MUTED}55`, border: `1px solid ${GOLD}33`, borderRadius: 8, padding: "10px 14px", color: CREAM, fontFamily: "Georgia, serif", fontSize: 14, outline: "none", width: "100%", boxSizing: "border-box" };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div>
-        <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 24, fontWeight: 600, margin: "0 0 6px", color: CREAM }}>Abbinamenti Perfetti</h2>
-        <p style={{ margin: 0, fontSize: 13, color: CREAM + "66", fontStyle: "italic" }}>Dì cosa mangi e ti suggerisco il vino. O viceversa.</p>
+        <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 24, fontWeight: 600, margin: "0 0 6px", color: CREAM }}>💎 Perle Nascoste</h2>
+        <p style={{ margin: 0, fontSize: 13, color: CREAM + "66", fontStyle: "italic" }}>Sei al ristorante? Analizza la carta e scopri i vini con il miglior rapporto qualità-prezzo.</p>
       </div>
-      <div style={{ display: "flex", gap: 0, background: `${MUTED}44`, borderRadius: 10, padding: 4, border: `1px solid ${GOLD}22` }}>
-        {[{ key: "food", label: "🍽️  Ho un piatto" }, { key: "wine", label: "🍷  Ho un vino" }].map(m => (
-          <button key={m.key} onClick={() => { setMode(m.key); setFood(""); setResult(""); }} style={{ flex: 1, padding: "9px", borderRadius: 7, background: mode === m.key ? `linear-gradient(135deg, ${BURGUNDY}, #9B2335)` : "transparent", border: "none", color: mode === m.key ? CREAM : CREAM + "66", fontFamily: "'Cormorant Garamond', serif", fontSize: 14, cursor: "pointer", transition: "all 0.2s" }}>{m.label}</button>
-        ))}
-      </div>
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-        {(mode === "food" ? FOOD_EXAMPLES : WINE_EXAMPLES).map((ex, i) => (
-          <button key={i} onClick={() => setFood(ex)} style={{ padding: "6px 12px", borderRadius: 16, background: food === ex ? `${BURGUNDY}88` : `${MUTED}55`, border: `1px solid ${food === ex ? BURGUNDY : GOLD + "22"}`, color: CREAM + "CC", fontSize: 12, cursor: "pointer", fontFamily: "Georgia, serif", transition: "all 0.2s" }}>{ex}</button>
-        ))}
-      </div>
-      <div style={{ display: "flex", gap: 10 }}>
-        <input value={food} onChange={e => setFood(e.target.value)} onKeyDown={e => e.key === "Enter" && getPairing()} placeholder={mode === "food" ? "Es: Tagliatelle al ragù bolognese..." : "Es: Amarone della Valpolicella 2015..."} style={{ flex: 1, background: `${MUTED}55`, border: `1px solid ${GOLD}33`, borderRadius: 10, padding: "12px 16px", color: CREAM, fontFamily: "Georgia, serif", fontSize: 14, outline: "none" }} />
-        <button onClick={getPairing} disabled={loading || !food.trim()} style={{ padding: "12px 22px", borderRadius: 10, background: loading || !food.trim() ? `${MUTED}88` : `linear-gradient(135deg, ${BURGUNDY}, #9B2335)`, border: `1px solid ${BURGUNDY}`, color: CREAM, fontFamily: "'Cormorant Garamond', serif", fontSize: 15, cursor: loading || !food.trim() ? "not-allowed" : "pointer", transition: "all 0.2s" }}>
-          {loading ? "..." : "Abbina →"}
-        </button>
-      </div>
-      {loading && (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, color: GOLD, fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic" }}>
-          <div style={{ width: 18, height: 18, border: `2px solid ${GOLD}`, borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-          Il sommelier seleziona il perfetto abbinamento...
+
+      <div style={{ padding: "12px 16px", borderRadius: 12, background: remaining > 0 ? `${MUTED}44` : `${BURGUNDY}33`, border: `1px solid ${remaining > 0 ? GOLD + "33" : BURGUNDY}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ fontSize: 13, color: remaining > 0 ? GOLD : "#FF8888" }}>
+          {remaining > 0 ? `✦ ${remaining} analisi gratuite rimanenti su ${freeLimit}` : "⚠️ Analisi gratuite esaurite"}
         </div>
+        {remaining === 0 && <button style={{ padding: "6px 16px", borderRadius: 20, background: `linear-gradient(135deg, ${GOLD}, #A07830)`, border: "none", color: DARK, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'Cormorant Garamond', serif" }}>Passa a Premium →</button>}
+      </div>
+
+      {!isPremium && (
+        <>
+          <div style={{ display: "flex", background: `${MUTED}44`, borderRadius: 10, padding: 4, border: `1px solid ${GOLD}22` }}>
+            {[{ key: "manual", label: "✏️  Digita manualmente" }, { key: "photo", label: "📸  Fotografa la carta" }].map(m => (
+              <button key={m.key} onClick={() => { setMode(m.key); setResult(""); setImage(null); setImagePreview(null); }} style={{ flex: 1, padding: "9px", borderRadius: 7, background: mode === m.key ? `linear-gradient(135deg, ${BURGUNDY}, #9B2335)` : "transparent", border: "none", color: mode === m.key ? CREAM : CREAM + "66", fontFamily: "'Cormorant Garamond', serif", fontSize: 14, cursor: "pointer" }}>{m.label}</button>
+            ))}
+          </div>
+
+          {mode === "manual" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <input value={label} onChange={e => setLabel(e.target.value)} placeholder="Nome del vino (es. Sassicaia 2019) *" style={iStyle} />
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <input value={vintage} onChange={e => setVintage(e.target.value)} placeholder="Annata" type="number" style={iStyle} />
+                <input value={price} onChange={e => setPrice(e.target.value)} placeholder="Prezzo carta € *" type="number" style={iStyle} />
+              </div>
+            </div>
+          )}
+
+          {mode === "photo" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={handlePhoto} style={{ display: "none" }} />
+              <button onClick={() => fileRef.current.click()} style={{ padding: "24px", borderRadius: 12, background: `${MUTED}33`, border: `2px dashed ${GOLD}44`, color: GOLD, fontFamily: "'Cormorant Garamond', serif", fontSize: 15, cursor: "pointer" }}>
+                {imagePreview ? "📸 Foto caricata — clicca per cambiare" : "📸 Fotografa la carta dei vini"}
+              </button>
+              {imagePreview && <img src={imagePreview} alt="Carta" style={{ borderRadius: 12, maxHeight: 200, objectFit: "cover", border: `1px solid ${GOLD}33` }} />}
+            </div>
+          )}
+
+          <button onClick={analyze} disabled={loading || (mode === "manual" && (!label || !price)) || (mode === "photo" && !image)} style={{ width: "100%", padding: "16px", background: `linear-gradient(135deg, #8B6914, ${GOLD})`, border: "none", borderRadius: 12, color: DARK, fontFamily: "'Cormorant Garamond', serif", fontSize: 16, fontWeight: 700, cursor: "pointer", letterSpacing: "0.05em", animation: "pulse 2s ease infinite", opacity: loading ? 0.6 : 1 }}>
+            {loading ? "💎 Analisi in corso..." : "💎 Trova le Perle Nascoste"}
+          </button>
+        </>
       )}
-      {result && (
-        <div style={{ background: `${MUTED}44`, borderRadius: 16, padding: 24, border: `1px solid ${GOLD}33`, borderLeft: `3px solid ${GOLD}`, color: "#E8D9BF", fontSize: 14, lineHeight: 1.8, fontFamily: "Georgia, serif", animation: "fadeUp 0.4s ease", whiteSpace: "pre-wrap" }}>
-          {result}
-        </div>
-      )}
+
+      {loading && <Spinner text="Il sommelier analizza il valore del vino..." />}
+      {result && <div style={{ background: `${MUTED}44`, borderRadius: 16, padding: 24, border: `1px solid ${GOLD}44`, borderLeft: `3px solid ${GOLD}`, color: "#E8D9BF", fontSize: 14, lineHeight: 1.9, fontFamily: "Georgia, serif", animation: "fadeUp 0.4s ease", whiteSpace: "pre-wrap" }}>{result}</div>}
+    </div>
+  );
+}
+
+function Spinner({ text }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, color: GOLD, fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic" }}>
+      <div style={{ width: 18, height: 18, border: `2px solid ${GOLD}`, borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+      {text}
     </div>
   );
 }
