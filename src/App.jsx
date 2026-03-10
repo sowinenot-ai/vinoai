@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import CommunityTab from "./CommunityTab";
+import AdminPanel from "./AdminPanel";
 
 const BURGUNDY = "#6B1A2A";
 const GOLD = "#C9A84C";
@@ -88,6 +89,7 @@ export default function VinoAI() {
   const [cellarAdvice, setCellarAdvice] = useState("");
   const [cellarLoading, setCellarLoading] = useState(false);
   const [gemAnalyses, setGemAnalyses] = useState(0);
+  const [showAdmin, setShowAdmin] = useState(false);
   const bottomRef = useRef();
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
@@ -154,7 +156,9 @@ export default function VinoAI() {
               <div style={{ fontSize: 10, color: GOLD, letterSpacing: "0.25em", textTransform: "uppercase", marginTop: -2 }}>Il tuo sommelier personale</div>
             </div>
           </div>
-          <div style={{ padding: "4px 14px", borderRadius: 20, border: `1px solid ${GOLD}44`, fontSize: 11, color: GOLD, letterSpacing: "0.15em", textTransform: "uppercase", animation: "shimmer 2s ease infinite" }}>✦ AI Attiva</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}><div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div onClick={() => setShowAdmin(true)} style={{ padding: "4px 14px", borderRadius: 20, border: `1px solid ${GOLD}44`, fontSize: 11, color: GOLD, letterSpacing: "0.15em", textTransform: "uppercase", animation: "shimmer 2s ease infinite", cursor: "pointer" }}>✦ AI Attiva</div>
+          </div><button onClick={async () => { const r = await fetch("/api/checkout", {method:"POST"}); const d = await r.json(); if(d.url) window.location.href = d.url; }} style={{ padding: "6px 14px", borderRadius: 20, background: `linear-gradient(135deg, ${GOLD}, #A07830)`, border: "none", color: DARK, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "'Cormorant Garamond', serif", letterSpacing: "0.1em" }}>⭐ Premium</button></div>
         </div>
       </header>
 
@@ -247,6 +251,7 @@ export default function VinoAI() {
         {tab === "pairing" && <PairingTab askClaude={askClaude} />}
         {tab === "gems" && <GemsTab analyzeGem={analyzeGem} gemAnalyses={gemAnalyses} setGemAnalyses={setGemAnalyses} freeLimit={FREE_LIMIT} />}
         {tab === "community" && <CommunityTab askClaude={askClaude} />}
+        {showAdmin && <AdminPanel user={typeof window !== "undefined" && window.__user} onClose={() => setShowAdmin(false)} />}
       </main>
     </div>
   );
