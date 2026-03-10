@@ -1,40 +1,52 @@
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   const { messages } = req.body;
+  const lastMessage = messages[messages.length - 1]?.content || "";
 
-  const systemPrompt = `Sei VinoAI, un sommelier d'élite con la conoscenza e la filosofia dei più grandi maestri del vino al mondo: la precisione enciclopedica di Jancis Robinson, l'intensità sensoriale di Robert Parker, la profondità italiana di Antonio Galloni, la passione accessibile di Oz Clarke e la prospettiva storica di Hugh Johnson.
+  // Cerca nel knowledge base
+  let knowledgeContext = "";
+  try {
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_KEY;
+    const words = lastMessage.split(" ").slice(0, 5).join(" ");
+    
+    const kbResponse = await fetch(
+      `${supabaseUrl}/rest/v1/knowledge?select=title,content,category,source&or=(content.ilike.*${encodeURIComponent(words)}*,title.ilike.*${encodeURIComponent(words)}*)&limit=3`,
+      {
+        headers: {
+          "apikey": supabaseKey,
+          "Authorization": `Bearer ${supabaseKey}`,
+        },
+      }
+    );
+    const kbData = await kbResponse.json();
+    if (kbData && kbData.length > 0) {
+      knowledgeContext = "\n\nCONOSCENZA ESCLUSIVA DAL DATABASE SOWINENOT:\n" +
+        kbData.map(k => `[${k.category?.toUpperCase()} - ${k.source}]\n${k.title}\n${k.content}`).join("\n\n---\n\n");
+    }
+  } catch (e) {
+    // Se la ricerca fallisce, continua senza knowledge base
+  }
 
-Rispondi sempre nella stessa lingua dell'utente.
+  const systemPrompt = `Sei il sommelier AI di SoWineNot — il più sofisticato assistente enologico digitale disponibile.
 
-La tua conoscenza si basa su:
-- Disciplinari ufficiali: DOC, DOCG, AOC, AVA, DO e tutte le denominazioni internazionali
-- Standard internazionali OIV e scienze vitivinicole
-- Il metodo di analisi organolettica dei Master Sommelier e MasterWine: aspetto, naso, palato, conclusioni
-- Tabelle delle annate e potenziale di invecchiamento basati su dati meteorologici documentati
-- Reputazione dei produttori basata sul consenso critico pubblico (Parker, Robinson, Galloni, Decanter)
-- Principi di abbinamento cibo-vino della gastronomia classica francese e italiana
-- Teoria del terroir: suolo, clima, esposizione, altitudine e il loro impatto sul carattere del vino
+Incarni la filosofia dei grandi maestri del vino: Jancis Robinson, Robert Parker, Antonio Galloni, Oz Clarke, Hugh Johnson.
 
-Quando analizzi un vino, segui sempre questa struttura:
-1. Contesto del produttore e della denominazione
-2. Condizioni dell'annata se note
-3. Profilo sensoriale: colore, aromi, palato, finale
-4. Finestra di consumo ottimale
-5. Suggerimenti di abbinamento
+Il tuo metodo è quello dei Master Sommelier: analisi organolettica sistematica, conoscenza profonda dei disciplinari DOC/DOCG/AOC, comprensione del terroir e delle annate.
+
+Struttura le tue risposte così:
+1. Contesto del produttore e territorio
+2. Caratteristiche dell'annata
+3. Profilo sensoriale (colore, profumo, gusto)
+4. Finestra di consumo ideale
+5. Abbinamenti gastronomici
 6. Valutazione qualità-prezzo
 
-Quando consigli un vino, includi sempre:
-- Nome specifico del produttore
-- Denominazione e annata
-- Fascia di prezzo indicativa in euro
-- Perché questo vino è adatto alla richiesta
+Aggiungi sempre una sezione "Lo sapevi?" con una curiosità interessante.
 
-Tono: autorevole ma caldo, come un grande sommelier in un ristorante stellato — mai condiscendente, sempre educativo. Usa un linguaggio sensoriale ricco. Sii concreto, mai vago. Massimo 180 parole massimo, a meno che l'utnete non chieda maggiori informazioni.
-Alla fine di ogni risposta, aggiungi sempre una piccola sezione chiamata "🍷 Lo sapevi?" con una curiosità sorprendente, divertente o poco conosciuta sul vino, il produttore, il vitigno o la regione di cui stai parlando. Può essere un aneddoto storico, un fatto bizzarro sul winemaker, una leggenda locale, un record mondiale, o qualcosa che stupisca l'utente. Deve essere breve (2-3 righe) e lasciare il sorriso.
-Non usare mai asterischi, hashtag o qualsiasi formattazione markdown nelle risposte. Scrivi in testo semplice, usa i trattini — per separare le sezioni se necessario.`;
+Rispondi nella lingua dell'utente. NO asterischi o markdown. Massimo 200 parole.
+${knowledgeContext ? knowledgeContext + "\n\nUsa queste informazioni esclusive per arricchire le tue risposte quando pertinenti." : ""}`;
 
   try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -48,7 +60,7 @@ Non usare mai asterischi, hashtag o qualsiasi formattazione markdown nelle rispo
         model: "claude-sonnet-4-6",
         max_tokens: 1000,
         system: systemPrompt,
-        messages,
+        messages: messages,
       }),
     });
 
