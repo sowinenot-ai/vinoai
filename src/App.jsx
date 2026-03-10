@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import CommunityTab from "./CommunityTab";
 import AdminPanel from "./AdminPanel";
+import MapTab from "./MapTab";
 
 const BURGUNDY = "#6B1A2A";
 const GOLD = "#C9A84C";
@@ -90,9 +91,23 @@ export default function VinoAI({ user, supabase }) {
   const [cellarLoading, setCellarLoading] = useState(false);
   const [gemAnalyses, setGemAnalyses] = useState(0);
   const [showAdmin, setShowAdmin] = useState(false);
+  const [geoWelcome, setGeoWelcome] = useState("");
   const bottomRef = useRef();
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
+
+  useEffect(() => {
+    navigator.geolocation?.getCurrentPosition(async pos => {
+      try {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
+        const d = await r.json();
+        const city = d.address?.city || d.address?.town || d.address?.village || d.address?.county || "";
+        const region = d.address?.state || "";
+        if (city) setGeoWelcome(`📍 Vedo che sei a ${city}${region ? `, ${region}` : ""} — scopri i migliori ristoranti vicino a te nella Mappa!`);
+      } catch (e) {}
+    }, () => {});
+  }, []);
 
   async function sendMessage(text) {
     const userText = text || input.trim();
@@ -169,8 +184,17 @@ export default function VinoAI({ user, supabase }) {
           <TabButton active={tab === "pairing"} onClick={() => setTab("pairing")} icon="🍽️">Abbinamenti</TabButton>
           <TabButton active={tab === "gems"} onClick={() => setTab("gems")} icon="💎" badge={remaining > 0 ? remaining : null}>Perle Nascoste</TabButton>
           <TabButton active={tab === "community"} onClick={() => setTab("community")} icon="🌍">Community</TabButton>
+          <TabButton active={tab === "map"} onClick={() => setTab("map")} icon="🗺️">Mappa</TabButton>
         </div>
       </div>
+
+      {geoWelcome && (
+        <div style={{ padding: "8px 32px 0", maxWidth: 800, margin: "0 auto", width: "100%" }}>
+          <div onClick={() => { setTab("map"); setGeoWelcome(""); }} style={{ padding: "9px 16px", background: "#6B1A2A44", borderRadius: 10, border: "1px solid #C9A84C33", fontSize: 12, color: "#C9A84C", cursor: "pointer" }}>
+            {geoWelcome} — <span style={{ textDecoration: "underline" }}>Vai alla Mappa</span>
+          </div>
+        </div>
+      )}
 
       <main style={{ flex: 1, padding: "20px 32px 32px", maxWidth: 800, margin: "0 auto", width: "100%", display: "flex", flexDirection: "column" }}>
 
@@ -251,6 +275,7 @@ export default function VinoAI({ user, supabase }) {
         {tab === "pairing" && <PairingTab askClaude={askClaude} />}
         {tab === "gems" && <GemsTab analyzeGem={analyzeGem} gemAnalyses={gemAnalyses} setGemAnalyses={setGemAnalyses} freeLimit={FREE_LIMIT} />}
         {tab === "community" && <CommunityTab askClaude={askClaude} />}
+        {tab === "map" && <MapTab user={user} isPremium={false} />}
         {showAdmin && <AdminPanel user={user} onClose={() => setShowAdmin(false)} />}
       </main>
     </div>
