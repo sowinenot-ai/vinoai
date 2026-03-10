@@ -78,7 +78,7 @@ function TabButton({ active, onClick, children, icon, badge }) {
   );
 }
 
-export default function VinoAI() {
+export default function VinoAI({ user, supabase }) {
   const [tab, setTab] = useState("chat");
   const [messages, setMessages] = useState([{ role: "assistant", content: "Benvenuto. Sono il tuo sommelier personale. Chiedimi tutto sul mondo del vino: abbinamenti, annate, cantine, o cosa aprire stasera." }]);
   const [input, setInput] = useState("");
