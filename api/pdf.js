@@ -1,7 +1,15 @@
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: "20mb",
+    },
+  },
+};
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const { base64, filename } = req.body;
+  const { base64, filename, restaurantName } = req.body;
   if (!base64) return res.status(400).json({ error: "PDF mancante" });
 
   try {
@@ -29,19 +37,26 @@ export default async function handler(req, res) {
               },
               {
                 type: "text",
-                text: `Sei un esperto sommelier e analista di carte dei vini. Analizza questa carta dei vini e fornisci:
+                text: `Sei un esperto sommelier e analista di carte dei vini.${restaurantName ? ` Stai analizzando la carta di: ${restaurantName}.` : ""}
 
-1. **PANORAMICA CARTA** — Quante etichette ci sono? Quali regioni sono rappresentate? Qual è la filosofia della carta?
+Analizza questa carta dei vini e fornisci:
 
-2. **💎 PERLE NASCOSTE** — Identifica i 3-5 vini con il miglior rapporto qualità/prezzo. Per ogni perla: nome vino, prezzo carta, stima prezzo retail, markup factor, e perché è una perla.
+PANORAMICA CARTA
+Quante etichette ci sono? Quali regioni sono rappresentate? Qual è la filosofia della carta?
 
-3. **⚠️ VINI OVERPRICED** — Segnala i 2-3 vini con markup eccessivo (>3x il prezzo retail).
+PERLE NASCOSTE (top 3-5)
+Per ogni perla: nome vino, prezzo carta, stima prezzo retail, markup factor, e perché è una perla.
 
-4. **⭐ HIGHLIGHTS** — I vini più interessanti/rari presenti.
+VINI OVERPRICED (top 2-3)
+Segnala i vini con markup eccessivo (più di 3 volte il prezzo retail).
 
-5. **VALUTAZIONE COMPLESSIVA** — Punteggio 0-100 e commento sulla qualità della selezione.
+HIGHLIGHTS
+I vini più interessanti o rari presenti in carta.
 
-Rispondi in italiano, senza asterischi o markdown. Sii preciso e diretto.`,
+VALUTAZIONE COMPLESSIVA
+Punteggio da 0 a 100 e commento finale sulla qualità della selezione.
+
+Rispondi in italiano. Niente asterischi o simboli speciali. Sii preciso e diretto.`,
               },
             ],
           },
@@ -52,11 +67,12 @@ Rispondi in italiano, senza asterischi o markdown. Sii preciso e diretto.`,
     const data = await response.json();
 
     if (data.error) {
-      return res.status(500).json({ error: data.error.message || "Errore API" });
+      return res.status(500).json({ error: data.error.message || "Errore API Anthropic" });
     }
 
     const result = data.content?.map((b) => b.text || "").join("") || "Nessun risultato";
     res.status(200).json({ result });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Errore analisi PDF: " + err.message });
