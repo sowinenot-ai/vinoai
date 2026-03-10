@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import CommunityTab from "./CommunityTab";
 import AdminPanel from "./AdminPanel";
+import PdfTab from "./PdfTab";
 import MapTab from "./MapTab";
 
 const BURGUNDY = "#6B1A2A";
@@ -25,15 +26,24 @@ const SUGGESTIONS = [
   { icon: "🥩", text: "Miglior vino per una bistecca fiorentina?" },
 ];
 
-async function askClaude(messages) {
+async function askClaude(messages, onChunk) {
   const res = await fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ messages }),
   });
-  const data = await res.json();
-  if (data.error) throw new Error(data.error);
-  return data.reply;
+  if (!res.ok) throw new Error("Errore server");
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let fullText = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const chunk = decoder.decode(value);
+    fullText += chunk;
+    if (onChunk) onChunk(fullText);
+  }
+  return fullText;
 }
 
 async function analyzeGem(payload) {
@@ -186,6 +196,7 @@ export default function VinoAI({ user, supabase, isPremium = false }) {
           <TabButton active={tab === "gems"} onClick={() => setTab("gems")} icon="💎" badge={remaining > 0 ? remaining : null}>Perle Nascoste</TabButton>
           <TabButton active={tab === "community"} onClick={() => setTab("community")} icon="🌍">Community</TabButton>
           <TabButton active={tab === "map"} onClick={() => setTab("map")} icon="🗺️">Mappa</TabButton>
+          <TabButton active={tab === "pdf"} onClick={() => setTab("pdf")} icon="📄">Analisi PDF</TabButton>
         </div>
       </div>
 
@@ -277,6 +288,7 @@ export default function VinoAI({ user, supabase, isPremium = false }) {
         {tab === "gems" && <GemsTab analyzeGem={analyzeGem} gemAnalyses={gemAnalyses} setGemAnalyses={setGemAnalyses} freeLimit={FREE_LIMIT} />}
         {tab === "community" && <CommunityTab askClaude={askClaude} />}
         {tab === "map" && <MapTab user={user} isPremium={isPremium} />}
+        {tab === "pdf" && <PdfTab user={user} isPremium={isPremium} />}
         {showAdmin && <AdminPanel user={user} onClose={() => setShowAdmin(false)} />}
       </main>
     </div>
