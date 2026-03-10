@@ -1,0 +1,295 @@
+import { useState, useRef, useEffect } from "react";
+
+const BURGUNDY = "#6B1A2A";
+const GOLD = "#C9A84C";
+const CREAM = "#F5ECD7";
+const DARK = "#0D0A08";
+const MUTED = "#3A2D28";
+
+const CELLAR_INIT = [
+  { id: 1, name: "Barolo DOCG", producer: "Giacomo Conterno", year: 2017, region: "Piemonte", qty: 3, notes: "Aprire dal 2025" },
+  { id: 2, name: "Brunello di Montalcino", producer: "Biondi-Santi", year: 2016, region: "Toscana", qty: 2, notes: "Grande annata" },
+  { id: 3, name: "Amarone della Valpolicella", producer: "Dal Forno Romano", year: 2015, region: "Veneto", qty: 1, notes: "Regalo speciale" },
+];
+
+const SUGGESTIONS = [
+  { icon: "🍝", text: "Che vino abbino alla pasta al tartufo?" },
+  { icon: "📸", text: "Analizza questo vino: Barolo Brunate 2018 Ceretto" },
+  { icon: "🎁", text: "Consigliami un vino da regalo sotto i 30€" },
+  { icon: "🌡️", text: "Quando aprire un Amarone della Valpolicella 2015?" },
+  { icon: "🇫🇷", text: "Differenza tra Borgogna e Barolo?" },
+  { icon: "🥩", text: "Miglior vino per una bistecca fiorentina?" },
+];
+
+// ✅ Chiama il nostro endpoint sicuro — la API key non è mai esposta
+async function askClaude(messages) {
+  const res = await fetch("/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ messages }),
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data.reply;
+}
+
+function Spinner() {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, color: GOLD, fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic" }}>
+      <div style={{ width: 18, height: 18, border: `2px solid ${GOLD}`, borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+      Il sommelier sta riflettendo...
+    </div>
+  );
+}
+
+function ChatBubble({ msg }) {
+  const isUser = msg.role === "user";
+  return (
+    <div style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start", marginBottom: 16, animation: "fadeUp 0.3s ease" }}>
+      {!isUser && (
+        <div style={{ width: 36, height: 36, borderRadius: "50%", background: `linear-gradient(135deg, ${BURGUNDY}, #9B2335)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0, marginRight: 10, marginTop: 2, border: `1px solid ${GOLD}33` }}>🍷</div>
+      )}
+      <div style={{ maxWidth: "72%", background: isUser ? `linear-gradient(135deg, ${BURGUNDY}, #9B2335)` : `${MUTED}88`, border: `1px solid ${isUser ? BURGUNDY : GOLD + "33"}`, borderRadius: isUser ? "18px 18px 4px 18px" : "18px 18px 18px 4px", padding: "12px 16px", color: isUser ? CREAM : "#E8D9BF", fontFamily: isUser ? "'Cormorant Garamond', serif" : "Georgia, serif", fontSize: isUser ? 15 : 14.5, lineHeight: 1.65, backdropFilter: "blur(8px)" }}>
+        {msg.content}
+      </div>
+    </div>
+  );
+}
+
+function TabButton({ active, onClick, children, icon }) {
+  return (
+    <button onClick={onClick} style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 20px", borderRadius: 30, background: active ? `linear-gradient(135deg, ${BURGUNDY}, #9B2335)` : "transparent", border: `1px solid ${active ? BURGUNDY : GOLD + "44"}`, color: active ? CREAM : GOLD + "99", fontFamily: "'Cormorant Garamond', serif", fontSize: 14, fontWeight: active ? 600 : 400, cursor: "pointer", transition: "all 0.25s ease", letterSpacing: "0.04em" }}>
+      <span>{icon}</span> {children}
+    </button>
+  );
+}
+
+export default function VinoAI() {
+  const [tab, setTab] = useState("chat");
+  const [messages, setMessages] = useState([{ role: "assistant", content: "Benvenuto. Sono il tuo sommelier personale. Chiedimi tutto sul mondo del vino: abbinamenti, annate, cantine, o cosa aprire stasera." }]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [cellar, setCellar] = useState(CELLAR_INIT);
+  const [newWine, setNewWine] = useState({ name: "", producer: "", year: "", region: "", qty: 1, notes: "" });
+  const [addingWine, setAddingWine] = useState(false);
+  const [cellarAdvice, setCellarAdvice] = useState("");
+  const [cellarLoading, setCellarLoading] = useState(false);
+  const bottomRef = useRef();
+
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
+
+  async function sendMessage(text) {
+    const userText = text || input.trim();
+    if (!userText || loading) return;
+    setInput("");
+    const newMsgs = [...messages, { role: "user", content: userText }];
+    setMessages(newMsgs);
+    setLoading(true);
+    try {
+      const reply = await askClaude(newMsgs.map(m => ({ role: m.role, content: m.content })));
+      setMessages(prev => [...prev, { role: "assistant", content: reply }]);
+    } catch {
+      setMessages(prev => [...prev, { role: "assistant", content: "Scusa, si è verificato un errore. Riprova." }]);
+    }
+    setLoading(false);
+  }
+
+  async function getCellarAdvice() {
+    if (cellarLoading || cellar.length === 0) return;
+    setCellarLoading(true);
+    const wineList = cellar.map(w => `${w.name} ${w.year} di ${w.producer} (${w.region}), ${w.qty} bottiglie. Note: ${w.notes}`).join("; ");
+    try {
+      const reply = await askClaude([{ role: "user", content: `Sono il proprietario di questa cantina: ${wineList}. Dammi 3 consigli pratici su quando aprire queste bottiglie e come valorizzare al meglio la mia collezione.` }]);
+      setCellarAdvice(reply);
+    } catch { setCellarAdvice("Errore nel recupero dei consigli."); }
+    setCellarLoading(false);
+  }
+
+  function addWine() {
+    if (!newWine.name || !newWine.year) return;
+    setCellar(prev => [...prev, { ...newWine, id: Date.now(), year: parseInt(newWine.year), qty: parseInt(newWine.qty) || 1 }]);
+    setNewWine({ name: "", producer: "", year: "", region: "", qty: 1, notes: "" });
+    setAddingWine(false);
+  }
+
+  const inputStyle = { background: `${MUTED}55`, border: `1px solid ${GOLD}33`, borderRadius: 8, padding: "8px 12px", color: CREAM, fontFamily: "Georgia, serif", fontSize: 13, outline: "none", width: "100%", boxSizing: "border-box" };
+
+  return (
+    <div style={{ minHeight: "100vh", background: DARK, backgroundImage: `radial-gradient(ellipse at 20% 20%, #2A0A1488 0%, transparent 60%), radial-gradient(ellipse at 80% 80%, #1A0A0566 0%, transparent 60%)`, fontFamily: "Georgia, serif", color: CREAM, display: "flex", flexDirection: "column" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap');
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes shimmer { 0%,100% { opacity: 0.6; } 50% { opacity: 1; } }
+        * { box-sizing: border-box; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: ${GOLD}44; border-radius: 2px; }
+        textarea:focus, input:focus { border-color: ${GOLD}88 !important; }
+        button:hover { opacity: 0.85; transform: translateY(-1px); }
+      `}</style>
+
+      <header style={{ padding: "24px 32px 16px", borderBottom: `1px solid ${GOLD}22`, background: `linear-gradient(180deg, #1A0A0888 0%, transparent 100%)`, backdropFilter: "blur(12px)", position: "sticky", top: 0, zIndex: 10 }}>
+        <div style={{ maxWidth: 800, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ fontSize: 28, width: 48, height: 48, display: "flex", alignItems: "center", justifyContent: "center", background: `linear-gradient(135deg, ${BURGUNDY}, #C0392B)`, borderRadius: 12, border: `1px solid ${GOLD}44`, boxShadow: `0 4px 20px ${BURGUNDY}66` }}>🍷</div>
+            <div>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, fontWeight: 600, letterSpacing: "0.08em", color: CREAM }}>VinoAI</div>
+              <div style={{ fontSize: 10, color: GOLD, letterSpacing: "0.25em", textTransform: "uppercase", marginTop: -2 }}>Il tuo sommelier personale</div>
+            </div>
+          </div>
+          <div style={{ padding: "4px 14px", borderRadius: 20, border: `1px solid ${GOLD}44`, fontSize: 11, color: GOLD, letterSpacing: "0.15em", textTransform: "uppercase", animation: "shimmer 2s ease infinite" }}>✦ AI Attiva</div>
+        </div>
+      </header>
+
+      <div style={{ padding: "16px 32px 0", maxWidth: 800, margin: "0 auto", width: "100%" }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <TabButton active={tab === "chat"} onClick={() => setTab("chat")} icon="💬">Sommelier Chat</TabButton>
+          <TabButton active={tab === "cellar"} onClick={() => setTab("cellar")} icon="🏺">La mia Cantina</TabButton>
+          <TabButton active={tab === "pairing"} onClick={() => setTab("pairing")} icon="🍽️">Abbinamenti</TabButton>
+        </div>
+      </div>
+
+      <main style={{ flex: 1, padding: "20px 32px 32px", maxWidth: 800, margin: "0 auto", width: "100%", display: "flex", flexDirection: "column" }}>
+
+        {tab === "chat" && (
+          <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 16 }}>
+            {messages.length <= 1 && (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+                {SUGGESTIONS.map((s, i) => (
+                  <button key={i} onClick={() => sendMessage(s.text)} style={{ padding: "8px 14px", borderRadius: 20, background: `${MUTED}66`, border: `1px solid ${GOLD}33`, color: CREAM + "CC", fontSize: 12, cursor: "pointer", fontFamily: "Georgia, serif", transition: "all 0.2s", display: "flex", alignItems: "center", gap: 6 }}>
+                    {s.icon} {s.text}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div style={{ flex: 1, overflowY: "auto", padding: "16px", background: `${MUTED}22`, borderRadius: 16, border: `1px solid ${GOLD}11`, minHeight: 320, maxHeight: 460 }}>
+              {messages.map((m, i) => <ChatBubble key={i} msg={m} />)}
+              {loading && <div style={{ padding: "8px 0 0 46px" }}><Spinner /></div>}
+              <div ref={bottomRef} />
+            </div>
+            <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
+              <textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} placeholder="Chiedi al tuo sommelier..." rows={2} style={{ ...inputStyle, resize: "none", flex: 1, padding: "12px 16px", borderRadius: 12, lineHeight: 1.5, fontSize: 14 }} />
+              <button onClick={() => sendMessage()} disabled={loading || !input.trim()} style={{ padding: "12px 22px", borderRadius: 12, background: loading || !input.trim() ? `${MUTED}88` : `linear-gradient(135deg, ${BURGUNDY}, #9B2335)`, border: `1px solid ${BURGUNDY}`, color: CREAM, cursor: loading ? "not-allowed" : "pointer", fontFamily: "'Cormorant Garamond', serif", fontSize: 15, transition: "all 0.2s", whiteSpace: "nowrap" }}>
+                Invia →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {tab === "cellar" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 24, fontWeight: 600, margin: 0, color: CREAM }}>La mia Cantina</h2>
+                <p style={{ margin: "4px 0 0", fontSize: 12, color: GOLD + "99", letterSpacing: "0.1em" }}>{cellar.reduce((a, b) => a + b.qty, 0)} bottiglie · {cellar.length} etichette</p>
+              </div>
+              <button onClick={() => setAddingWine(!addingWine)} style={{ padding: "8px 18px", borderRadius: 20, background: addingWine ? `${MUTED}88` : `linear-gradient(135deg, ${BURGUNDY}, #9B2335)`, border: `1px solid ${BURGUNDY}`, color: CREAM, fontFamily: "'Cormorant Garamond', serif", fontSize: 14, cursor: "pointer" }}>
+                {addingWine ? "✕ Annulla" : "+ Aggiungi"}
+              </button>
+            </div>
+            {addingWine && (
+              <div style={{ background: `${MUTED}44`, borderRadius: 16, padding: 20, border: `1px solid ${GOLD}22`, animation: "fadeUp 0.3s ease", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <input placeholder="Nome vino *" value={newWine.name} onChange={e => setNewWine(p => ({ ...p, name: e.target.value }))} style={inputStyle} />
+                <input placeholder="Produttore" value={newWine.producer} onChange={e => setNewWine(p => ({ ...p, producer: e.target.value }))} style={inputStyle} />
+                <input placeholder="Annata *" type="number" value={newWine.year} onChange={e => setNewWine(p => ({ ...p, year: e.target.value }))} style={inputStyle} />
+                <input placeholder="Regione" value={newWine.region} onChange={e => setNewWine(p => ({ ...p, region: e.target.value }))} style={inputStyle} />
+                <input placeholder="Quantità" type="number" value={newWine.qty} onChange={e => setNewWine(p => ({ ...p, qty: e.target.value }))} style={inputStyle} />
+                <input placeholder="Note personali" value={newWine.notes} onChange={e => setNewWine(p => ({ ...p, notes: e.target.value }))} style={inputStyle} />
+                <button onClick={addWine} style={{ gridColumn: "1/-1", padding: "10px", background: `linear-gradient(135deg, ${BURGUNDY}, #9B2335)`, border: "none", borderRadius: 8, color: CREAM, fontFamily: "'Cormorant Garamond', serif", fontSize: 15, cursor: "pointer" }}>Aggiungi alla cantina →</button>
+              </div>
+            )}
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {cellar.map(w => (
+                <div key={w.id} style={{ background: `${MUTED}33`, borderRadius: 12, padding: "14px 18px", border: `1px solid ${GOLD}22`, display: "flex", justifyContent: "space-between", alignItems: "center", animation: "fadeUp 0.3s ease" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 8, background: `linear-gradient(135deg, ${BURGUNDY}88, #9B233566)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, border: `1px solid ${GOLD}33`, flexShrink: 0 }}>🍾</div>
+                    <div>
+                      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 16, fontWeight: 600, color: CREAM }}>{w.name} {w.year}</div>
+                      <div style={{ fontSize: 12, color: GOLD + "AA", marginTop: 2 }}>{w.producer} · {w.region}</div>
+                      {w.notes && <div style={{ fontSize: 11, color: CREAM + "66", marginTop: 3, fontStyle: "italic" }}>{w.notes}</div>}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{ padding: "4px 12px", borderRadius: 20, background: `${BURGUNDY}44`, border: `1px solid ${BURGUNDY}88`, fontSize: 12, color: GOLD, fontFamily: "'Cormorant Garamond', serif" }}>× {w.qty}</div>
+                    <button onClick={() => setCellar(p => p.filter(x => x.id !== w.id))} style={{ background: "none", border: "none", color: CREAM + "44", cursor: "pointer", fontSize: 16, padding: 4 }}>✕</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button onClick={getCellarAdvice} disabled={cellarLoading} style={{ width: "100%", padding: "14px", background: cellarLoading ? `${MUTED}88` : `linear-gradient(135deg, ${BURGUNDY}88, #9B233566)`, border: `1px solid ${GOLD}44`, borderRadius: 12, color: GOLD, fontFamily: "'Cormorant Garamond', serif", fontSize: 15, cursor: cellarLoading ? "not-allowed" : "pointer", letterSpacing: "0.05em" }}>
+              {cellarLoading ? "🍷 Il sommelier analizza la tua cantina..." : "✦ Chiedi consiglio al sommelier sulla mia cantina"}
+            </button>
+            {cellarAdvice && (
+              <div style={{ padding: 20, background: `${MUTED}44`, borderRadius: 12, border: `1px solid ${GOLD}33`, color: "#E8D9BF", fontSize: 14, lineHeight: 1.7, fontFamily: "Georgia, serif", animation: "fadeUp 0.4s ease", borderLeft: `3px solid ${GOLD}88` }}>
+                {cellarAdvice}
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab === "pairing" && <PairingTab askClaude={askClaude} />}
+      </main>
+    </div>
+  );
+}
+
+function PairingTab({ askClaude }) {
+  const [food, setFood] = useState("");
+  const [result, setResult] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState("food");
+
+  const FOOD_EXAMPLES = ["Pasta al tartufo bianco", "Ossobuco alla milanese", "Salmone al forno", "Tiramisù", "Pizza Margherita"];
+  const WINE_EXAMPLES = ["Barolo 2016", "Pinot Grigio del Trentino", "Chianti Classico Riserva", "Prosecco di Valdobbiadene"];
+
+  async function getPairing() {
+    if (!food.trim() || loading) return;
+    setLoading(true);
+    setResult("");
+    try {
+      const prompt = mode === "food"
+        ? `Suggerisci i 3 vini ideali da abbinare a: "${food}". Per ognuno: nome specifico, produttore consigliato, prezzo indicativo e motivo dell'abbinamento.`
+        : `Ho il vino: "${food}". Suggerisci 4 piatti perfetti da abbinare, con una breve spiegazione per ognuno.`;
+      const reply = await askClaude([{ role: "user", content: prompt }]);
+      setResult(reply);
+    } catch { setResult("Errore. Riprova."); }
+    setLoading(false);
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <div>
+        <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 24, fontWeight: 600, margin: "0 0 6px", color: CREAM }}>Abbinamenti Perfetti</h2>
+        <p style={{ margin: 0, fontSize: 13, color: CREAM + "66", fontStyle: "italic" }}>Dì cosa mangi e ti suggerisco il vino. O viceversa.</p>
+      </div>
+      <div style={{ display: "flex", gap: 0, background: `${MUTED}44`, borderRadius: 10, padding: 4, border: `1px solid ${GOLD}22` }}>
+        {[{ key: "food", label: "🍽️  Ho un piatto" }, { key: "wine", label: "🍷  Ho un vino" }].map(m => (
+          <button key={m.key} onClick={() => { setMode(m.key); setFood(""); setResult(""); }} style={{ flex: 1, padding: "9px", borderRadius: 7, background: mode === m.key ? `linear-gradient(135deg, ${BURGUNDY}, #9B2335)` : "transparent", border: "none", color: mode === m.key ? CREAM : CREAM + "66", fontFamily: "'Cormorant Garamond', serif", fontSize: 14, cursor: "pointer", transition: "all 0.2s" }}>{m.label}</button>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        {(mode === "food" ? FOOD_EXAMPLES : WINE_EXAMPLES).map((ex, i) => (
+          <button key={i} onClick={() => setFood(ex)} style={{ padding: "6px 12px", borderRadius: 16, background: food === ex ? `${BURGUNDY}88` : `${MUTED}55`, border: `1px solid ${food === ex ? BURGUNDY : GOLD + "22"}`, color: CREAM + "CC", fontSize: 12, cursor: "pointer", fontFamily: "Georgia, serif", transition: "all 0.2s" }}>{ex}</button>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 10 }}>
+        <input value={food} onChange={e => setFood(e.target.value)} onKeyDown={e => e.key === "Enter" && getPairing()} placeholder={mode === "food" ? "Es: Tagliatelle al ragù bolognese..." : "Es: Amarone della Valpolicella 2015..."} style={{ flex: 1, background: `${MUTED}55`, border: `1px solid ${GOLD}33`, borderRadius: 10, padding: "12px 16px", color: CREAM, fontFamily: "Georgia, serif", fontSize: 14, outline: "none" }} />
+        <button onClick={getPairing} disabled={loading || !food.trim()} style={{ padding: "12px 22px", borderRadius: 10, background: loading || !food.trim() ? `${MUTED}88` : `linear-gradient(135deg, ${BURGUNDY}, #9B2335)`, border: `1px solid ${BURGUNDY}`, color: CREAM, fontFamily: "'Cormorant Garamond', serif", fontSize: 15, cursor: loading || !food.trim() ? "not-allowed" : "pointer", transition: "all 0.2s" }}>
+          {loading ? "..." : "Abbina →"}
+        </button>
+      </div>
+      {loading && (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, color: GOLD, fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic" }}>
+          <div style={{ width: 18, height: 18, border: `2px solid ${GOLD}`, borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+          Il sommelier seleziona il perfetto abbinamento...
+        </div>
+      )}
+      {result && (
+        <div style={{ background: `${MUTED}44`, borderRadius: 16, padding: 24, border: `1px solid ${GOLD}33`, borderLeft: `3px solid ${GOLD}`, color: "#E8D9BF", fontSize: 14, lineHeight: 1.8, fontFamily: "Georgia, serif", animation: "fadeUp 0.4s ease", whiteSpace: "pre-wrap" }}>
+          {result}
+        </div>
+      )}
+    </div>
+  );
+}
