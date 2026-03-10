@@ -11,21 +11,36 @@ const supabase = createClient(
 export default function AppWrapper() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isPremium, setIsPremium] = useState(false);
 
   useEffect(() => {
-    // Check current session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
-      setLoading(false);
+      if (session?.user) checkPremium(session.user.email);
+      else setLoading(false);
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      if (session?.user) checkPremium(session.user.email);
+      else setIsPremium(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  async function checkPremium(email) {
+    try {
+      const res = await fetch("/api/premium", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "check", email }),
+      });
+      const data = await res.json();
+      setIsPremium(data.premium || false);
+    } catch {}
+    setLoading(false);
+  }
 
   if (loading) {
     return (
@@ -35,9 +50,7 @@ export default function AppWrapper() {
     );
   }
 
-  if (!user) {
-    return <AuthScreen onLogin={setUser} />;
-  }
+  if (!user) return <AuthScreen onLogin={setUser} />;
 
-  return <VinoAI user={user} supabase={supabase} />;
+  return <VinoAI user={user} supabase={supabase} isPremium={isPremium} />;
 }
