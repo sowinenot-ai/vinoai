@@ -231,7 +231,7 @@ export default function MapTab({ user, isPremium }) {
           )}
 
           {/* PDF upload — admin + premium */}
-          {(isPremium || isAdmin) && (
+          {true && (
             <div style={{ marginTop: 14, borderTop: `1px solid ${GOLD}22`, paddingTop: 14 }}>
               <div style={{ fontSize: 11, color: GOLD, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>📄 Analizza carta vini PDF</div>
               <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", background: `${MUTED}44`, borderRadius: 10, border: `1px dashed ${GOLD}44`, cursor: pdfLoading ? "default" : "pointer" }}>
