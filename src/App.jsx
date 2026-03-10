@@ -77,9 +77,9 @@ function TabButton({ active, onClick, children, icon, badge }) {
   );
 }
 
-export default function VinoAI() {
+export default function SoWineNot() {
   const [tab, setTab] = useState("chat");
-  const [messages, setMessages] = useState([{ role: "assistant", content: "Benvenuto. Sono il tuo sommelier personale. Chiedimi tutto sul mondo del vino: abbinamenti, annate, cantine, o cosa aprire stasera." }]);
+  const [messages, setMessages] = useState([{ role: "assistant", content: "Benvenuto. So Wine or Not?. Chiedimi tutto sul mondo del vino: abbinamenti, annate, cantine, o cosa aprire stasera." }]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [cellar, setCellar] = useState(CELLAR_INIT);
@@ -150,7 +150,7 @@ export default function VinoAI() {
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ fontSize: 28, width: 48, height: 48, display: "flex", alignItems: "center", justifyContent: "center", background: `linear-gradient(135deg, ${BURGUNDY}, #C0392B)`, borderRadius: 12, border: `1px solid ${GOLD}44`, boxShadow: `0 4px 20px ${BURGUNDY}66` }}>🍷</div>
             <div>
-              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, fontWeight: 600, letterSpacing: "0.08em", color: CREAM }}>VinoAI</div>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, fontWeight: 600, letterSpacing: "0.08em", color: CREAM }}>SoWineNot</div>
               <div style={{ fontSize: 10, color: GOLD, letterSpacing: "0.25em", textTransform: "uppercase", marginTop: -2 }}>Il tuo sommelier personale</div>
             </div>
           </div>
