@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import CommunityTab from "./CommunityTab";
 import AdminPanel from "./AdminPanel";
 import PdfTab from "./PdfTab";
+import DiaryTab from "./DiaryTab";
 import MapTab from "./MapTab";
 
 const BURGUNDY = "#6B1A2A";
@@ -197,6 +198,7 @@ export default function VinoAI({ user, supabase, isPremium = false }) {
           <TabButton active={tab === "community"} onClick={() => setTab("community")} icon="🌍">Community</TabButton>
           <TabButton active={tab === "map"} onClick={() => setTab("map")} icon="🗺️">Mappa</TabButton>
           <TabButton active={tab === "pdf"} onClick={() => setTab("pdf")} icon="📄">Analisi PDF</TabButton>
+          <TabButton active={tab === "diary"} onClick={() => setTab("diary")} icon="📔">Il Mio Diario</TabButton>
         </div>
       </div>
 
@@ -289,6 +291,7 @@ export default function VinoAI({ user, supabase, isPremium = false }) {
         {tab === "community" && <CommunityTab askClaude={askClaude} />}
         {tab === "map" && <MapTab user={user} isPremium={isPremium} />}
         {tab === "pdf" && <PdfTab user={user} isPremium={isPremium} />}
+        {tab === "diary" && <DiaryTab user={user} />}
         {showAdmin && <AdminPanel user={user} onClose={() => setShowAdmin(false)} />}
       </main>
     </div>
