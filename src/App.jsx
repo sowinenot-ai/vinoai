@@ -362,11 +362,4 @@ function GemsTab({ analyzeGem, gemAnalyses, setGemAnalyses, freeLimit }) {
   );
 }
 
-function Spinner({ text }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, color: GOLD, fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic" }}>
-      <div style={{ width: 18, height: 18, border: `2px solid ${GOLD}`, borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-      {text}
-    </div>
-  );
-}
+
