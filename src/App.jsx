@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import CommunityTab from "./CommunityTab";
 
 const BURGUNDY = "#6B1A2A";
 const GOLD = "#C9A84C";
@@ -163,6 +164,7 @@ export default function VinoAI() {
           <TabButton active={tab === "cellar"} onClick={() => setTab("cellar")} icon="🏺">Cantina</TabButton>
           <TabButton active={tab === "pairing"} onClick={() => setTab("pairing")} icon="🍽️">Abbinamenti</TabButton>
           <TabButton active={tab === "gems"} onClick={() => setTab("gems")} icon="💎" badge={remaining > 0 ? remaining : null}>Perle Nascoste</TabButton>
+          <TabButton active={tab === "community"} onClick={() => setTab("community")} icon="🌍">Community</TabButton>
         </div>
       </div>
 
@@ -244,6 +246,7 @@ export default function VinoAI() {
 
         {tab === "pairing" && <PairingTab askClaude={askClaude} />}
         {tab === "gems" && <GemsTab analyzeGem={analyzeGem} gemAnalyses={gemAnalyses} setGemAnalyses={setGemAnalyses} freeLimit={FREE_LIMIT} />}
+        {tab === "community" && <CommunityTab askClaude={askClaude} />}
       </main>
     </div>
   );
