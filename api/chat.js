@@ -35,7 +35,7 @@ Tieni le risposte concise ma preziose - massimo 150 parole a meno che non ti ven
     });
 
     const data = await response.json();
-    const text = data.content?.map((b) => b.text || "").join("") || "Errore nella risposta.";
+    const text = data.content?.map((b) => b.text || "").join("") || JSON.stringify(data);
     res.status(200).json({ reply: text });
   } catch (err) {
     console.error(err);
