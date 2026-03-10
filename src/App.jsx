@@ -77,9 +77,9 @@ function TabButton({ active, onClick, children, icon, badge }) {
   );
 }
 
-export default function SoWineNot() {
+export default function VinoAI() {
   const [tab, setTab] = useState("chat");
-  const [messages, setMessages] = useState([{ role: "assistant", content: "Benvenuto. So Wine or Not?. Chiedimi tutto sul mondo del vino: abbinamenti, annate, cantine, o cosa aprire stasera." }]);
+  const [messages, setMessages] = useState([{ role: "assistant", content: "Benvenuto. Sono il tuo sommelier personale. Chiedimi tutto sul mondo del vino: abbinamenti, annate, cantine, o cosa aprire stasera." }]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [cellar, setCellar] = useState(CELLAR_INIT);
@@ -150,7 +150,7 @@ export default function SoWineNot() {
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ fontSize: 28, width: 48, height: 48, display: "flex", alignItems: "center", justifyContent: "center", background: `linear-gradient(135deg, ${BURGUNDY}, #C0392B)`, borderRadius: 12, border: `1px solid ${GOLD}44`, boxShadow: `0 4px 20px ${BURGUNDY}66` }}>🍷</div>
             <div>
-              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, fontWeight: 600, letterSpacing: "0.08em", color: CREAM }}>SoWineNot</div>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, fontWeight: 600, letterSpacing: "0.08em", color: CREAM }}>VinoAI</div>
               <div style={{ fontSize: 10, color: GOLD, letterSpacing: "0.25em", textTransform: "uppercase", marginTop: -2 }}>Il tuo sommelier personale</div>
             </div>
           </div>
@@ -322,7 +322,7 @@ function GemsTab({ analyzeGem, gemAnalyses, setGemAnalyses, freeLimit }) {
         <div style={{ fontSize: 13, color: remaining > 0 ? GOLD : "#FF8888" }}>
           {remaining > 0 ? `✦ ${remaining} analisi gratuite rimanenti su ${freeLimit}` : "⚠️ Analisi gratuite esaurite"}
         </div>
-        {remaining === 0 && <button style={{ padding: "6px 16px", borderRadius: 20, background: `linear-gradient(135deg, ${GOLD}, #A07830)`, border: "none", color: DARK, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'Cormorant Garamond', serif" }}>Passa a Premium →</button>}
+        {remaining === 0 && <button onClick={async () => { const r = await fetch("/api/checkout", {method:"POST"}); const d = await r.json(); if(d.url) window.location.href = d.url; }} style={{ padding: "6px 16px", borderRadius: 20, background: `linear-gradient(135deg, ${GOLD}, #A07830)`, border: "none", color: DARK, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'Cormorant Garamond', serif" }}>Passa a Premium →</button>}
       </div>
 
       {!isPremium && (
