@@ -251,7 +251,7 @@ export default function VinoAI() {
         {tab === "pairing" && <PairingTab askClaude={askClaude} />}
         {tab === "gems" && <GemsTab analyzeGem={analyzeGem} gemAnalyses={gemAnalyses} setGemAnalyses={setGemAnalyses} freeLimit={FREE_LIMIT} />}
         {tab === "community" && <CommunityTab askClaude={askClaude} />}
-        {showAdmin && <AdminPanel user={typeof window !== "undefined" && window.__user} onClose={() => setShowAdmin(false)} />}
+        {showAdmin && <AdminPanel user={user} onClose={() => setShowAdmin(false)} />}
       </main>
     </div>
   );
