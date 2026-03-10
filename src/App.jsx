@@ -173,7 +173,8 @@ export default function VinoAI({ user, supabase, isPremium = false }) {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}><div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <div onClick={() => setShowAdmin(true)} style={{ padding: "4px 14px", borderRadius: 20, border: `1px solid ${GOLD}44`, fontSize: 11, color: GOLD, letterSpacing: "0.15em", textTransform: "uppercase", animation: "shimmer 2s ease infinite", cursor: "pointer" }}>✦ AI Attiva</div>
-          </div><button onClick={async () => { const r = await fetch("/api/checkout", {method:"POST"}); const d = await r.json(); if(d.url) window.location.href = d.url; }} style={{ padding: "6px 14px", borderRadius: 20, background: `linear-gradient(135deg, ${GOLD}, #A07830)`, border: "none", color: DARK, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "'Cormorant Garamond', serif", letterSpacing: "0.1em" }}>⭐ Premium</button></div>
+          </div><button onClick={async () => { const r = await fetch("/api/checkout", {method:"POST"}); const d = await r.json(); if(d.url) window.location.href = d.url; }} style={{ padding: "6px 14px", borderRadius: 20, background: `linear-gradient(135deg, ${GOLD}, #A07830)`, border: "none", color: DARK, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "'Cormorant Garamond', serif", letterSpacing: "0.1em" }}>⭐ Premium</button>
+          <button onClick={async () => { await supabase.auth.signOut(); window.location.reload(); }} style={{ padding: "6px 12px", borderRadius: 20, background: "transparent", border: `1px solid ${CREAM}22`, color: CREAM + "55", fontSize: 11, cursor: "pointer", fontFamily: "'Cormorant Garamond', serif" }}>Esci</button></div>
         </div>
       </header>
 
