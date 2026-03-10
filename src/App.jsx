@@ -79,7 +79,7 @@ function TabButton({ active, onClick, children, icon, badge }) {
   );
 }
 
-export default function VinoAI({ user, supabase }) {
+export default function VinoAI({ user, supabase, isPremium = false }) {
   const [tab, setTab] = useState("chat");
   const [messages, setMessages] = useState([{ role: "assistant", content: "Benvenuto. Sono il tuo sommelier personale. Chiedimi tutto sul mondo del vino: abbinamenti, annate, cantine, o cosa aprire stasera." }]);
   const [input, setInput] = useState("");
@@ -275,7 +275,7 @@ export default function VinoAI({ user, supabase }) {
         {tab === "pairing" && <PairingTab askClaude={askClaude} />}
         {tab === "gems" && <GemsTab analyzeGem={analyzeGem} gemAnalyses={gemAnalyses} setGemAnalyses={setGemAnalyses} freeLimit={FREE_LIMIT} />}
         {tab === "community" && <CommunityTab askClaude={askClaude} />}
-        {tab === "map" && <MapTab user={user} isPremium={false} />}
+        {tab === "map" && <MapTab user={user} isPremium={isPremium} />}
         {showAdmin && <AdminPanel user={user} onClose={() => setShowAdmin(false)} />}
       </main>
     </div>
