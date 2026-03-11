@@ -33,6 +33,117 @@ function scoreColor(score) {
   return "#888";
 }
 
+// Mappatura città → { country, region, continent }
+const CITY_GEO = {
+  "cogne": { country: "Italia", region: "Valle d'Aosta", continent: "Europa" },
+  "aosta": { country: "Italia", region: "Valle d'Aosta", continent: "Europa" },
+  "torino": { country: "Italia", region: "Piemonte", continent: "Europa" },
+  "alba": { country: "Italia", region: "Piemonte", continent: "Europa" },
+  "asti": { country: "Italia", region: "Piemonte", continent: "Europa" },
+  "barolo": { country: "Italia", region: "Piemonte", continent: "Europa" },
+  "cuneo": { country: "Italia", region: "Piemonte", continent: "Europa" },
+  "novara": { country: "Italia", region: "Piemonte", continent: "Europa" },
+  "milan": { country: "Italia", region: "Lombardia", continent: "Europa" },
+  "milano": { country: "Italia", region: "Lombardia", continent: "Europa" },
+  "brescia": { country: "Italia", region: "Lombardia", continent: "Europa" },
+  "bergamo": { country: "Italia", region: "Lombardia", continent: "Europa" },
+  "mantova": { country: "Italia", region: "Lombardia", continent: "Europa" },
+  "como": { country: "Italia", region: "Lombardia", continent: "Europa" },
+  "venice": { country: "Italia", region: "Veneto", continent: "Europa" },
+  "venezia": { country: "Italia", region: "Veneto", continent: "Europa" },
+  "verona": { country: "Italia", region: "Veneto", continent: "Europa" },
+  "vicenza": { country: "Italia", region: "Veneto", continent: "Europa" },
+  "padova": { country: "Italia", region: "Veneto", continent: "Europa" },
+  "treviso": { country: "Italia", region: "Veneto", continent: "Europa" },
+  "trento": { country: "Italia", region: "Trentino-Alto Adige", continent: "Europa" },
+  "bolzano": { country: "Italia", region: "Trentino-Alto Adige", continent: "Europa" },
+  "trieste": { country: "Italia", region: "Friuli Venezia Giulia", continent: "Europa" },
+  "udine": { country: "Italia", region: "Friuli Venezia Giulia", continent: "Europa" },
+  "genova": { country: "Italia", region: "Liguria", continent: "Europa" },
+  "sanremo": { country: "Italia", region: "Liguria", continent: "Europa" },
+  "firenze": { country: "Italia", region: "Toscana", continent: "Europa" },
+  "florence": { country: "Italia", region: "Toscana", continent: "Europa" },
+  "siena": { country: "Italia", region: "Toscana", continent: "Europa" },
+  "montalcino": { country: "Italia", region: "Toscana", continent: "Europa" },
+  "pisa": { country: "Italia", region: "Toscana", continent: "Europa" },
+  "lucca": { country: "Italia", region: "Toscana", continent: "Europa" },
+  "arezzo": { country: "Italia", region: "Toscana", continent: "Europa" },
+  "bologna": { country: "Italia", region: "Emilia-Romagna", continent: "Europa" },
+  "modena": { country: "Italia", region: "Emilia-Romagna", continent: "Europa" },
+  "parma": { country: "Italia", region: "Emilia-Romagna", continent: "Europa" },
+  "ravenna": { country: "Italia", region: "Emilia-Romagna", continent: "Europa" },
+  "roma": { country: "Italia", region: "Lazio", continent: "Europa" },
+  "rome": { country: "Italia", region: "Lazio", continent: "Europa" },
+  "napoli": { country: "Italia", region: "Campania", continent: "Europa" },
+  "naples": { country: "Italia", region: "Campania", continent: "Europa" },
+  "salerno": { country: "Italia", region: "Campania", continent: "Europa" },
+  "palermo": { country: "Italia", region: "Sicilia", continent: "Europa" },
+  "catania": { country: "Italia", region: "Sicilia", continent: "Europa" },
+  "agrigento": { country: "Italia", region: "Sicilia", continent: "Europa" },
+  "bari": { country: "Italia", region: "Puglia", continent: "Europa" },
+  "lecce": { country: "Italia", region: "Puglia", continent: "Europa" },
+  "cagliari": { country: "Italia", region: "Sardegna", continent: "Europa" },
+  "paris": { country: "Francia", region: "Île-de-France", continent: "Europa" },
+  "parigi": { country: "Francia", region: "Île-de-France", continent: "Europa" },
+  "bordeaux": { country: "Francia", region: "Nouvelle-Aquitaine", continent: "Europa" },
+  "lyon": { country: "Francia", region: "Auvergne-Rhône-Alpes", continent: "Europa" },
+  "nice": { country: "Francia", region: "Provence-Alpes-Côte d'Azur", continent: "Europa" },
+  "strasbourg": { country: "Francia", region: "Grand Est", continent: "Europa" },
+  "madrid": { country: "Spagna", region: "Comunidad de Madrid", continent: "Europa" },
+  "barcelona": { country: "Spagna", region: "Catalogna", continent: "Europa" },
+  "barcellona": { country: "Spagna", region: "Catalogna", continent: "Europa" },
+  "london": { country: "Regno Unito", region: "Inghilterra", continent: "Europa" },
+  "londra": { country: "Regno Unito", region: "Inghilterra", continent: "Europa" },
+  "berlin": { country: "Germania", region: "Berlino", continent: "Europa" },
+  "berlino": { country: "Germania", region: "Berlino", continent: "Europa" },
+  "amsterdam": { country: "Paesi Bassi", region: "Noord-Holland", continent: "Europa" },
+  "new york": { country: "USA", region: "New York", continent: "America" },
+  "los angeles": { country: "USA", region: "California", continent: "America" },
+  "san francisco": { country: "USA", region: "California", continent: "America" },
+  "chicago": { country: "USA", region: "Illinois", continent: "America" },
+  "napa": { country: "USA", region: "California", continent: "America" },
+  "tokyo": { country: "Giappone", region: "Kantō", continent: "Asia" },
+  "osaka": { country: "Giappone", region: "Kansai", continent: "Asia" },
+  "dubai": { country: "Emirati Arabi", region: "Dubai", continent: "Asia" },
+  "sydney": { country: "Australia", region: "New South Wales", continent: "Oceania" },
+};
+
+function getGeo(city) {
+  if (!city) return { country: "Sconosciuto", region: "Sconosciuto", continent: "Mondo" };
+  const key = city.toLowerCase().trim();
+  if (CITY_GEO[key]) return CITY_GEO[key];
+  for (const [k, v] of Object.entries(CITY_GEO)) {
+    if (key.includes(k) || k.includes(key)) return v;
+  }
+  // Default Italia se non trovato
+  return { country: "Italia", region: "Altra regione", continent: "Europa" };
+}
+
+// Unifica ristoranti con stesso nome (case-insensitive)
+function mergeRestaurants(list) {
+  const map = new Map();
+  for (const r of list) {
+    const key = (r.name || "").toLowerCase().trim();
+    if (!key) continue;
+    if (!map.has(key)) {
+      map.set(key, { ...r, gems: Array.isArray(r.gems) ? [...r.gems] : [], _allNames: [r.name] });
+    } else {
+      const ex = map.get(key);
+      const existingIds = new Set(ex.gems.map(g => g.id || g.wine_name));
+      for (const g of (r.gems || [])) {
+        if (!existingIds.has(g.id || g.wine_name)) ex.gems.push(g);
+      }
+      if (!ex.lat && r.lat) { ex.lat = r.lat; ex.lng = r.lng; }
+      if (!ex._allNames.includes(r.name)) ex._allNames.push(r.name);
+      if (!ex.has_sommelier && r.has_sommelier) { ex.has_sommelier = true; ex.sommelier_notes = r.sommelier_notes; }
+    }
+  }
+  return Array.from(map.values());
+}
+
+// ============================================================
+// MAIN MAPTAB
+// ============================================================
 export default function MapTab({ user, isPremium }) {
   const mapRef = useRef(null);
   const leafletMap = useRef(null);
@@ -75,13 +186,12 @@ export default function MapTab({ user, isPremium }) {
 
   async function loadRestaurants() {
     const [d1, d2] = await Promise.all([
-      sbFetch("restaurants?select=*,gems(gem_score,wine_name,classification,notes,markup_factor,restaurant_price,retail_price)&order=created_at.desc"),
+      sbFetch("restaurants?select=*,gems(id,gem_score,wine_name,classification,notes,markup_factor,restaurant_price,retail_price)&order=created_at.desc"),
       sbFetch("map_restaurants?select=*&order=created_at.desc"),
     ]);
     const r1 = Array.isArray(d1) ? d1 : [];
     const r2 = Array.isArray(d2) ? d2.map(r => ({ ...r, gems: [] })) : [];
-    const names = new Set(r1.map(r => r.name?.toLowerCase()));
-    setRestaurants([...r1, ...r2.filter(r => !names.has(r.name?.toLowerCase()))]);
+    setRestaurants(mergeRestaurants([...r1, ...r2]));
   }
 
   function renderMarkers(map, rests) {
@@ -112,7 +222,7 @@ export default function MapTab({ user, isPremium }) {
         const d = await r.json();
         const city = d.address?.city || d.address?.town || d.address?.village || "";
         setForm(f => ({ ...f, city }));
-      } catch (e) {}
+      } catch {}
     });
   }
 
@@ -132,7 +242,6 @@ export default function MapTab({ user, isPremium }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <style>{`.leaflet-container{border-radius:16px;}.leaflet-control-attribution{display:none!important;}`}</style>
 
-      {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 600, margin: 0, color: CREAM }}>🗺️ Mappa Mondiale</h2>
@@ -145,7 +254,6 @@ export default function MapTab({ user, isPremium }) {
         )}
       </div>
 
-      {/* Form aggiunta ristorante */}
       {showForm && isAdmin && (
         <div style={{ background: `${MUTED}33`, borderRadius: 16, padding: 18, border: `1px solid ${GOLD}22`, display: "flex", flexDirection: "column", gap: 10 }}>
           <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Nome ristorante *" style={inp} />
@@ -180,23 +288,14 @@ export default function MapTab({ user, isPremium }) {
         </div>
       )}
 
-      {/* Mappa */}
       <div ref={mapRef} style={{ width: "100%", height: 360, borderRadius: 16, border: `1px solid ${GOLD}22`, background: "#111" }}>
         {!leafletLoaded && <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: `${CREAM}44`, fontSize: 14 }}>🗺️ Caricamento mappa...</div>}
       </div>
 
-      {/* Ristorante selezionato (popup) */}
       {selected && (
-        <SelectedRestaurant
-          restaurant={selected}
-          onClose={() => setSelected(null)}
-          user={user}
-          isPremium={isPremium}
-          canSeeGems={canSeeGems}
-        />
+        <SelectedRestaurant restaurant={selected} onClose={() => setSelected(null)} canSeeGems={canSeeGems} />
       )}
 
-      {/* Legenda colori */}
       <div style={{ display: "flex", gap: 16, padding: "10px 14px", background: `${MUTED}22`, borderRadius: 10, flexWrap: "wrap" }}>
         {[["#E84040", "Gemma estrema"], ["#FF8C00", "Buona opportunità"], [GOLD, "Standard"], ["#888", "Non analizzato"]].map(([c, l]) => (
           <div key={l} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: `${CREAM}88` }}>
@@ -205,28 +304,20 @@ export default function MapTab({ user, isPremium }) {
         ))}
       </div>
 
-      {/* ===== MENU A TENDINA — SFOGLIA PER ZONA ===== */}
+      {/* SFOGLIA PER ZONA */}
       <div style={{ border: `1px solid ${GOLD}33`, borderRadius: 14, overflow: "hidden" }}>
-        {/* Bottone intestazione */}
-        <button
-          onClick={() => setBrowseOpen(o => !o)}
+        <button onClick={() => setBrowseOpen(o => !o)}
           style={{ width: "100%", padding: "14px 18px", background: browseOpen ? `linear-gradient(135deg, ${BURGUNDY}, #9B2335)` : `${MUTED}44`, border: "none", color: CREAM, fontSize: 15, cursor: "pointer", fontFamily: "'Cormorant Garamond', serif", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span>🌍 Sfoglia per zona</span>
           <span style={{ fontSize: 12, color: `${GOLD}88` }}>{restaurants.length} ristoranti {browseOpen ? "▲" : "▼"}</span>
         </button>
-
-        {/* Contenuto menu */}
         {browseOpen && (
           <div style={{ background: `${MUTED}22`, padding: 16 }}>
-            <GeoBrowser
-              restaurants={restaurants}
-              canSeeGems={canSeeGems}
+            <GeoBrowser restaurants={restaurants} canSeeGems={canSeeGems}
               onSelectOnMap={r => {
                 setSelected(r);
                 setBrowseOpen(false);
-                if (leafletMap.current && r.lat && r.lng) {
-                  leafletMap.current.setView([r.lat, r.lng], 14);
-                }
+                if (leafletMap.current && r.lat && r.lng) leafletMap.current.setView([r.lat, r.lng], 14);
                 window.scrollTo({ top: 0, behavior: "smooth" });
               }}
             />
@@ -238,9 +329,9 @@ export default function MapTab({ user, isPremium }) {
 }
 
 // ============================================================
-// SELECTED RESTAURANT POPUP
+// SELECTED RESTAURANT (popup dopo click pin mappa)
 // ============================================================
-function SelectedRestaurant({ restaurant: r, onClose, user, isPremium, canSeeGems }) {
+function SelectedRestaurant({ restaurant: r, onClose, canSeeGems }) {
   const [pdfs, setPdfs] = useState([]);
   const [loadingPdfs, setLoadingPdfs] = useState(true);
   const gems = r.gems || [];
@@ -249,22 +340,25 @@ function SelectedRestaurant({ restaurant: r, onClose, user, isPremium, canSeeGem
     async function load() {
       setLoadingPdfs(true);
       try {
-        const stopWords = new Set(["hotel", "ristorante", "osteria", "trattoria", "enoteca"]);
-        const words = r.name.toLowerCase().split(" ").filter(w => w.length > 2 && !stopWords.has(w));
+        const stopWords = new Set(["hotel", "ristorante", "osteria", "trattoria", "enoteca", "della", "dello", "del", "the"]);
+        const allNames = r._allNames || [r.name];
+        const wordSet = new Set();
+        for (const name of allNames) {
+          name.toLowerCase().split(" ").filter(w => w.length > 2 && !stopWords.has(w)).forEach(w => wordSet.add(w));
+        }
         const searches = [];
         if (r.city) searches.push(
           fetch(`${SUPABASE_URL}/rest/v1/restaurant_pdfs?city=ilike.*${encodeURIComponent(r.city)}*&order=created_at.desc`,
             { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }).then(res => res.json()).catch(() => [])
         );
-        for (const w of words) searches.push(
+        for (const w of wordSet) searches.push(
           fetch(`${SUPABASE_URL}/rest/v1/restaurant_pdfs?restaurant_name=ilike.*${encodeURIComponent(w)}*&order=created_at.desc`,
             { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }).then(res => res.json()).catch(() => [])
         );
         const results = await Promise.all(searches);
         const seen = new Set();
-        const all = results.flat().filter(p => { if (!p?.id || seen.has(p.id)) return false; seen.add(p.id); return true; });
-        setPdfs(all);
-      } catch (e) { setPdfs([]); }
+        setPdfs(results.flat().filter(p => { if (!p?.id || seen.has(p.id)) return false; seen.add(p.id); return true; }));
+      } catch { setPdfs([]); }
       setLoadingPdfs(false);
     }
     load();
@@ -279,14 +373,13 @@ function SelectedRestaurant({ restaurant: r, onClose, user, isPremium, canSeeGem
           <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
             {gems.length > 0 && <span style={{ fontSize: 11, padding: "2px 10px", borderRadius: 20, background: `${GOLD}18`, color: GOLD, border: `1px solid ${GOLD}33` }}>💎 {gems.length} gemme</span>}
             {r.has_sommelier && <span style={{ fontSize: 11, padding: "2px 10px", borderRadius: 20, background: "#88CCFF18", color: "#88CCFF", border: "1px solid #88CCFF33" }}>⭐ {r.sommelier_notes || "Sommelier"}</span>}
-            {pdfs.length > 0 && <span style={{ fontSize: 11, padding: "2px 10px", borderRadius: 20, background: `${MUTED}55`, color: `${CREAM}88`, border: `1px solid ${GOLD}22` }}>📄 {pdfs.length} carte</span>}
+            {!loadingPdfs && pdfs.length > 0 && <span style={{ fontSize: 11, padding: "2px 10px", borderRadius: 20, background: `${MUTED}55`, color: `${CREAM}88`, border: `1px solid ${GOLD}22` }}>📄 {pdfs.length} carte</span>}
           </div>
         </div>
-        <button onClick={onClose} style={{ background: "none", border: "none", color: `${CREAM}44`, fontSize: 22, cursor: "pointer", padding: "0 4px" }}>✕</button>
+        <button onClick={onClose} style={{ background: "none", border: "none", color: `${CREAM}44`, fontSize: 22, cursor: "pointer" }}>✕</button>
       </div>
 
       <div style={{ padding: "0 18px 18px", display: "flex", flexDirection: "column", gap: 14 }}>
-        {/* Gemme */}
         {gems.length > 0 && (
           <div>
             <div style={{ fontSize: 11, color: GOLD, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 10 }}>💎 Gemme Nascoste</div>
@@ -302,11 +395,7 @@ function SelectedRestaurant({ restaurant: r, onClose, user, isPremium, canSeeGem
                         {g.markup_factor && <span style={{ color: g.markup_factor <= 2.5 ? "#4CAF50" : "#FF8C00", marginLeft: 6 }}>({g.markup_factor}x)</span>}
                       </div>
                     )}
-                    {g.notes && (
-                      <div style={{ color: `${CREAM}88`, fontSize: 12, marginTop: 6, lineHeight: 1.5, fontStyle: "italic", borderLeft: `2px solid ${GOLD}44`, paddingLeft: 8 }}>
-                        {g.notes}
-                      </div>
-                    )}
+                    {g.notes && <div style={{ color: `${CREAM}88`, fontSize: 12, marginTop: 6, fontStyle: "italic", borderLeft: `2px solid ${GOLD}44`, paddingLeft: 8 }}>{g.notes}</div>}
                   </div>
                   <span style={{ color: scoreColor(g.gem_score), fontWeight: 700, fontSize: 13, background: `${scoreColor(g.gem_score)}18`, padding: "3px 10px", borderRadius: 20, flexShrink: 0 }}>{g.gem_score}/100</span>
                 </div>
@@ -324,22 +413,18 @@ function SelectedRestaurant({ restaurant: r, onClose, user, isPremium, canSeeGem
           </div>
         )}
 
-        {/* Carte PDF */}
         <div>
           <div style={{ fontSize: 11, color: GOLD, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>📄 Carte dei Vini</div>
-          {loadingPdfs ? (
-            <div style={{ color: `${CREAM}44`, fontSize: 12 }}>Caricamento...</div>
-          ) : pdfs.length === 0 ? (
-            <div style={{ color: `${CREAM}33`, fontSize: 12, fontStyle: "italic" }}>Nessuna carta caricata</div>
-          ) : pdfs.map(pdf => (
-            <div key={pdf.id} style={{ padding: "8px 12px", background: `${MUTED}22`, borderRadius: 8, marginBottom: 6, border: `1px solid ${GOLD}11` }}>
-              <div style={{ color: GOLD, fontSize: 13 }}>📋 {pdf.section_name || "Carta completa"}</div>
-              <div style={{ color: `${CREAM}44`, fontSize: 11, marginTop: 2 }}>{new Date(pdf.created_at).toLocaleDateString("it-IT")}</div>
-            </div>
-          ))}
+          {loadingPdfs ? <div style={{ color: `${CREAM}44`, fontSize: 12 }}>Caricamento...</div>
+            : pdfs.length === 0 ? <div style={{ color: `${CREAM}33`, fontSize: 12, fontStyle: "italic" }}>Nessuna carta caricata</div>
+            : pdfs.map(pdf => (
+              <div key={pdf.id} style={{ padding: "8px 12px", background: `${MUTED}22`, borderRadius: 8, marginBottom: 6, border: `1px solid ${GOLD}11` }}>
+                <div style={{ color: GOLD, fontSize: 13 }}>📋 {pdf.section_name || "Carta completa"}</div>
+                <div style={{ color: `${CREAM}44`, fontSize: 11, marginTop: 2 }}>{new Date(pdf.created_at).toLocaleDateString("it-IT")}</div>
+              </div>
+            ))}
         </div>
 
-        {/* Note */}
         {(r.notes || r.sommelier_notes || r.wine_list_notes) && (
           <div style={{ fontSize: 13, color: `${CREAM}77`, lineHeight: 1.6, fontStyle: "italic", borderLeft: `2px solid ${GOLD}33`, paddingLeft: 10 }}>
             {(r.notes || r.sommelier_notes || r.wine_list_notes)?.slice(0, 300)}
@@ -351,79 +436,127 @@ function SelectedRestaurant({ restaurant: r, onClose, user, isPremium, canSeeGem
 }
 
 // ============================================================
-// GEO BROWSER — navigazione per zona
+// GEO BROWSER — Continente → Nazione → Regione → Città → Ristoranti
 // ============================================================
 function GeoBrowser({ restaurants, canSeeGems, onSelectOnMap }) {
-  const [level, setLevel] = useState("cities"); // cities | restaurants
+  const [level, setLevel] = useState("continent");
+  const [selContinent, setSelContinent] = useState(null);
+  const [selCountry, setSelCountry] = useState(null);
+  const [selRegion, setSelRegion] = useState(null);
   const [selCity, setSelCity] = useState(null);
 
-  const cities = [...new Set(restaurants.map(r => r.city).filter(Boolean))].sort();
+  const enriched = restaurants.map(r => ({ ...r, _geo: getGeo(r.city) }));
 
-  function getRests(city) {
-    return restaurants.filter(r =>
-      r.city?.toLowerCase().includes(city.toLowerCase()) ||
-      city.toLowerCase().includes((r.city || "").toLowerCase())
-    );
+  const continents = [...new Set(enriched.map(r => r._geo.continent))].sort();
+  const countries = [...new Set(enriched.filter(r => r._geo.continent === selContinent).map(r => r._geo.country))].sort();
+  const regions = [...new Set(enriched.filter(r => r._geo.country === selCountry).map(r => r._geo.region))].sort();
+  const cities = [...new Set(enriched.filter(r => r._geo.region === selRegion).map(r => r.city).filter(Boolean))].sort();
+  const cityRests = enriched.filter(r => {
+    const rc = (r.city || "").toLowerCase();
+    const sc = (selCity || "").toLowerCase();
+    return rc === sc || rc.includes(sc) || sc.includes(rc);
+  });
+
+  const crumbs = [
+    { label: "🌍 Mondo", onClick: () => { setLevel("continent"); setSelContinent(null); setSelCountry(null); setSelRegion(null); setSelCity(null); } },
+    selContinent && { label: `🗺️ ${selContinent}`, onClick: () => { setLevel("country"); setSelCountry(null); setSelRegion(null); setSelCity(null); } },
+    selCountry && { label: `🏳️ ${selCountry}`, onClick: () => { setLevel("region"); setSelRegion(null); setSelCity(null); } },
+    selRegion && { label: `📍 ${selRegion}`, onClick: () => { setLevel("city"); setSelCity(null); } },
+    selCity && { label: `🏙️ ${selCity}`, onClick: () => setLevel("restaurants") },
+  ].filter(Boolean);
+
+  const rowBtn = { padding: "13px 16px", background: `${MUTED}33`, border: `1px solid ${GOLD}22`, borderRadius: 12, color: CREAM, cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", marginBottom: 6 };
+
+  function GemCount({ items }) {
+    const total = items.reduce((s, r) => s + (r.gems?.length || 0), 0);
+    return total > 0 && canSeeGems ? <span style={{ fontSize: 11, color: GOLD }}> · 💎 {total} gemme</span> : null;
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-
+    <div>
       {/* Breadcrumb */}
-      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, marginBottom: 4 }}>
-        <button onClick={() => { setLevel("cities"); setSelCity(null); }}
-          style={{ background: "none", border: "none", color: level === "cities" ? CREAM : `${GOLD}88`, cursor: "pointer", fontFamily: "Georgia, serif", padding: 0 }}>
-          🌍 Tutte le zone
-        </button>
-        {selCity && (
-          <>
-            <span style={{ color: `${GOLD}44` }}>›</span>
-            <span style={{ color: CREAM, fontFamily: "Georgia, serif" }}>📍 {selCity}</span>
-          </>
-        )}
+      <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, marginBottom: 12, flexWrap: "wrap" }}>
+        {crumbs.map((c, i) => (
+          <span key={i} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            {i > 0 && <span style={{ color: `${GOLD}44` }}>›</span>}
+            <button onClick={c.onClick} style={{ background: "none", border: "none", color: i === crumbs.length - 1 ? CREAM : `${GOLD}88`, cursor: "pointer", fontFamily: "Georgia, serif", padding: "2px 4px", fontSize: 12, fontWeight: i === crumbs.length - 1 ? 600 : 400 }}>
+              {c.label}
+            </button>
+          </span>
+        ))}
       </div>
 
-      {/* Lista città */}
-      {level === "cities" && (
-        cities.length === 0 ? (
-          <div style={{ color: `${CREAM}44`, fontSize: 13, fontStyle: "italic", padding: 8 }}>Nessun ristorante ancora nel database</div>
-        ) : cities.map(city => {
-          const rests = getRests(city);
-          const totalGems = rests.reduce((s, r) => s + (r.gems?.length || 0), 0);
-          return (
-            <button key={city} onClick={() => { setSelCity(city); setLevel("restaurants"); }}
-              style={{ padding: "13px 16px", background: `${MUTED}33`, border: `1px solid ${GOLD}22`, borderRadius: 12, color: CREAM, cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
-              <div>
-                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 16, fontWeight: 600 }}>📍 {city}</div>
-                <div style={{ fontSize: 12, color: `${CREAM}55`, marginTop: 3 }}>
-                  {rests.length} ristorante{rests.length !== 1 ? "i" : ""}
-                  {totalGems > 0 && canSeeGems && ` · 💎 ${totalGems} gemme`}
-                </div>
-              </div>
-              <span style={{ color: `${GOLD}66`, fontSize: 18 }}>›</span>
-            </button>
-          );
-        })
-      )}
+      {/* CONTINENTI */}
+      {level === "continent" && continents.map(cont => {
+        const items = enriched.filter(r => r._geo.continent === cont);
+        return (
+          <button key={cont} style={rowBtn} onClick={() => { setSelContinent(cont); setLevel("country"); }}>
+            <div>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17, fontWeight: 600 }}>🌍 {cont}</div>
+              <div style={{ fontSize: 12, color: `${CREAM}55`, marginTop: 3 }}>{items.length} ristorante{items.length !== 1 ? "i" : ""}<GemCount items={items} /></div>
+            </div>
+            <span style={{ color: `${GOLD}66`, fontSize: 18 }}>›</span>
+          </button>
+        );
+      })}
 
-      {/* Lista ristoranti per città */}
-      {level === "restaurants" && selCity && (
-        getRests(selCity).length === 0 ? (
-          <div style={{ color: `${CREAM}44`, fontSize: 13, padding: 8 }}>Nessun ristorante a {selCity}</div>
-        ) : getRests(selCity).map(r => {
-          const gems = r.gems || [];
-          const topScore = r.gem_score || (gems.length ? Math.max(...gems.map(g => g.gem_score || 0)) : null);
-          return (
-            <RestaurantRow key={r.id} r={r} gems={gems} topScore={topScore} canSeeGems={canSeeGems} onSelectOnMap={onSelectOnMap} />
-          );
-        })
+      {/* NAZIONI */}
+      {level === "country" && countries.map(country => {
+        const items = enriched.filter(r => r._geo.country === country);
+        return (
+          <button key={country} style={rowBtn} onClick={() => { setSelCountry(country); setLevel("region"); }}>
+            <div>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17, fontWeight: 600 }}>🏳️ {country}</div>
+              <div style={{ fontSize: 12, color: `${CREAM}55`, marginTop: 3 }}>{items.length} ristorante{items.length !== 1 ? "i" : ""}<GemCount items={items} /></div>
+            </div>
+            <span style={{ color: `${GOLD}66`, fontSize: 18 }}>›</span>
+          </button>
+        );
+      })}
+
+      {/* REGIONI */}
+      {level === "region" && regions.map(region => {
+        const items = enriched.filter(r => r._geo.region === region);
+        return (
+          <button key={region} style={rowBtn} onClick={() => { setSelRegion(region); setLevel("city"); }}>
+            <div>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17, fontWeight: 600 }}>📍 {region}</div>
+              <div style={{ fontSize: 12, color: `${CREAM}55`, marginTop: 3 }}>{items.length} ristorante{items.length !== 1 ? "i" : ""}<GemCount items={items} /></div>
+            </div>
+            <span style={{ color: `${GOLD}66`, fontSize: 18 }}>›</span>
+          </button>
+        );
+      })}
+
+      {/* CITTÀ */}
+      {level === "city" && cities.map(city => {
+        const items = enriched.filter(r => r.city?.toLowerCase() === city.toLowerCase());
+        return (
+          <button key={city} style={rowBtn} onClick={() => { setSelCity(city); setLevel("restaurants"); }}>
+            <div>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17, fontWeight: 600 }}>🏙️ {city}</div>
+              <div style={{ fontSize: 12, color: `${CREAM}55`, marginTop: 3 }}>{items.length} ristorante{items.length !== 1 ? "i" : ""}<GemCount items={items} /></div>
+            </div>
+            <span style={{ color: `${GOLD}66`, fontSize: 18 }}>›</span>
+          </button>
+        );
+      })}
+
+      {/* RISTORANTI */}
+      {level === "restaurants" && (
+        cityRests.length === 0
+          ? <div style={{ color: `${CREAM}44`, fontSize: 13, padding: 8 }}>Nessun ristorante a {selCity}</div>
+          : cityRests.map(r => (
+            <RestaurantRow key={r.id} r={r} gems={r.gems || []} topScore={(r.gems || []).length ? Math.max(...(r.gems || []).map(g => g.gem_score || 0)) : null}
+              canSeeGems={canSeeGems} onSelectOnMap={onSelectOnMap} />
+          ))
       )}
     </div>
   );
 }
 
 // ============================================================
-// RESTAURANT ROW — card espandibile nel browser
+// RESTAURANT ROW — card espandibile
 // ============================================================
 function RestaurantRow({ r, gems, topScore, canSeeGems, onSelectOnMap }) {
   const [open, setOpen] = useState(false);
@@ -431,14 +564,18 @@ function RestaurantRow({ r, gems, topScore, canSeeGems, onSelectOnMap }) {
 
   async function loadPdfs() {
     if (pdfs !== null) return;
-    const stopWords = new Set(["hotel", "ristorante", "osteria", "trattoria", "enoteca"]);
-    const words = r.name.toLowerCase().split(" ").filter(w => w.length > 2 && !stopWords.has(w));
+    const stopWords = new Set(["hotel", "ristorante", "osteria", "trattoria", "enoteca", "della", "dello", "del", "the"]);
+    const allNames = r._allNames || [r.name];
+    const wordSet = new Set();
+    for (const name of allNames) {
+      name.toLowerCase().split(" ").filter(w => w.length > 2 && !stopWords.has(w)).forEach(w => wordSet.add(w));
+    }
     const searches = [];
     if (r.city) searches.push(
       fetch(`${SUPABASE_URL}/rest/v1/restaurant_pdfs?city=ilike.*${encodeURIComponent(r.city)}*&order=created_at.desc`,
         { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }).then(res => res.json()).catch(() => [])
     );
-    for (const w of words) searches.push(
+    for (const w of wordSet) searches.push(
       fetch(`${SUPABASE_URL}/rest/v1/restaurant_pdfs?restaurant_name=ilike.*${encodeURIComponent(w)}*&order=created_at.desc`,
         { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }).then(res => res.json()).catch(() => [])
     );
@@ -447,57 +584,37 @@ function RestaurantRow({ r, gems, topScore, canSeeGems, onSelectOnMap }) {
     setPdfs(results.flat().filter(p => { if (!p?.id || seen.has(p.id)) return false; seen.add(p.id); return true; }));
   }
 
-  function toggle() {
-    if (!open) loadPdfs();
-    setOpen(o => !o);
-  }
-
   return (
-    <div style={{ background: `${MUTED}22`, borderRadius: 12, border: `1px solid ${GOLD}22`, overflow: "hidden" }}>
-      {/* Header */}
-      <div onClick={toggle} style={{ padding: "13px 16px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+    <div style={{ background: `${MUTED}22`, borderRadius: 12, border: `1px solid ${GOLD}22`, overflow: "hidden", marginBottom: 6 }}>
+      <div onClick={() => { if (!open) loadPdfs(); setOpen(o => !o); }}
+        style={{ padding: "13px 16px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17, color: CREAM, fontWeight: 600 }}>🍷 {r.name}</div>
           <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
-            {topScore && (
-              <span style={{ fontSize: 11, color: scoreColor(topScore), background: `${scoreColor(topScore)}18`, padding: "2px 9px", borderRadius: 20, border: `1px solid ${scoreColor(topScore)}33` }}>
-                🤖 {topScore}/100
-              </span>
-            )}
-            {gems.length > 0 && (
-              <span style={{ fontSize: 11, color: GOLD, background: `${GOLD}18`, padding: "2px 9px", borderRadius: 20, border: `1px solid ${GOLD}33` }}>
-                💎 {gems.length} gemm{gems.length === 1 ? "a" : "e"}
-              </span>
-            )}
-            {r.has_sommelier && (
-              <span style={{ fontSize: 11, color: "#88CCFF", background: "#88CCFF18", padding: "2px 9px", borderRadius: 20, border: "1px solid #88CCFF33" }}>
-                ⭐ {r.sommelier_notes || "Sommelier"}
-              </span>
-            )}
+            {topScore && <span style={{ fontSize: 11, color: scoreColor(topScore), background: `${scoreColor(topScore)}18`, padding: "2px 9px", borderRadius: 20, border: `1px solid ${scoreColor(topScore)}33` }}>🤖 {topScore}/100</span>}
+            {gems.length > 0 && <span style={{ fontSize: 11, color: GOLD, background: `${GOLD}18`, padding: "2px 9px", borderRadius: 20, border: `1px solid ${GOLD}33` }}>💎 {gems.length} gemm{gems.length === 1 ? "a" : "e"}</span>}
+            {r.has_sommelier && <span style={{ fontSize: 11, color: "#88CCFF", background: "#88CCFF18", padding: "2px 9px", borderRadius: 20, border: "1px solid #88CCFF33" }}>⭐ {r.sommelier_notes || "Sommelier"}</span>}
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", marginLeft: 8 }}>
           {r.lat && r.lng && (
             <button onClick={e => { e.stopPropagation(); onSelectOnMap(r); }}
               style={{ padding: "5px 11px", background: `${BURGUNDY}88`, border: `1px solid ${GOLD}33`, borderRadius: 20, color: CREAM, fontSize: 11, cursor: "pointer", whiteSpace: "nowrap" }}>
-              📍 Vedi
+              📍 Mappa
             </button>
           )}
           <span style={{ color: `${GOLD}66`, fontSize: 16 }}>{open ? "▲" : "▼"}</span>
         </div>
       </div>
 
-      {/* Dettagli espansi */}
       {open && (
         <div style={{ borderTop: `1px solid ${GOLD}11`, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 14 }}>
-
-          {/* Gemme */}
           {gems.length > 0 && (
             <div>
               <div style={{ fontSize: 11, color: GOLD, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 10 }}>💎 Gemme Nascoste</div>
               {canSeeGems ? gems.map((g, i) => (
                 <div key={i} style={{ padding: "10px 0", borderBottom: `1px solid ${GOLD}11` }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ color: CREAM, fontSize: 14, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600 }}>🍷 {g.wine_name || "Vino"}</div>
                       {g.classification && <div style={{ color: `${GOLD}77`, fontSize: 11, marginTop: 2 }}>{g.classification}</div>}
@@ -507,11 +624,7 @@ function RestaurantRow({ r, gems, topScore, canSeeGems, onSelectOnMap }) {
                           {g.markup_factor && <span style={{ color: g.markup_factor <= 2.5 ? "#4CAF50" : "#FF8C00", marginLeft: 6 }}>({g.markup_factor}x)</span>}
                         </div>
                       )}
-                      {g.notes && (
-                        <div style={{ color: `${CREAM}88`, fontSize: 12, marginTop: 6, lineHeight: 1.5, fontStyle: "italic", borderLeft: `2px solid ${GOLD}44`, paddingLeft: 8 }}>
-                          {g.notes}
-                        </div>
-                      )}
+                      {g.notes && <div style={{ color: `${CREAM}88`, fontSize: 12, marginTop: 6, fontStyle: "italic", borderLeft: `2px solid ${GOLD}44`, paddingLeft: 8 }}>{g.notes}</div>}
                     </div>
                     <span style={{ color: scoreColor(g.gem_score), fontWeight: 700, fontSize: 13, background: `${scoreColor(g.gem_score)}18`, padding: "3px 10px", borderRadius: 20, flexShrink: 0 }}>{g.gem_score}/100</span>
                   </div>
@@ -524,8 +637,6 @@ function RestaurantRow({ r, gems, topScore, canSeeGems, onSelectOnMap }) {
               )}
             </div>
           )}
-
-          {/* Carte PDF */}
           <div>
             <div style={{ fontSize: 11, color: GOLD, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>📄 Carte dei Vini</div>
             {pdfs === null && <div style={{ color: `${CREAM}44`, fontSize: 12 }}>Caricamento...</div>}
@@ -537,13 +648,6 @@ function RestaurantRow({ r, gems, topScore, canSeeGems, onSelectOnMap }) {
               </div>
             ))}
           </div>
-
-          {/* Note */}
-          {(r.notes || r.wine_list_notes) && (
-            <div style={{ fontSize: 12, color: `${CREAM}66`, lineHeight: 1.6, fontStyle: "italic", borderLeft: `2px solid ${GOLD}33`, paddingLeft: 10 }}>
-              {(r.notes || r.wine_list_notes)?.slice(0, 200)}
-            </div>
-          )}
         </div>
       )}
     </div>
