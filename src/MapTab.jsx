@@ -218,6 +218,16 @@ export default function MapTab({ user, isPremium }) {
               {pdfResult && <div style={{ fontSize: 12, marginTop: 5, color: GOLD }}>{pdfResult}</div>}
             </div>
           )}
+          
+          {!isPremium && !isAdmin && (
+            <div style={{ marginTop: 20, padding: 15, background: `linear-gradient(to bottom, ${GOLD}11, transparent)`, borderRadius: 12, border: `1px solid ${GOLD}22`, textAlign: "center" }}>
+              <div style={{ color: GOLD, fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Sblocca le Perle dell'AI</div>
+              <div style={{ color: CREAM + "88", fontSize: 12, marginBottom: 12 }}>Ottieni l'analisi completa dei prezzi e trova le gemme nascoste in questa carta.</div>
+              <button style={{ background: `linear-gradient(135deg, ${GOLD}, #A07830)`, border: "none", color: DARK, fontSize: 12, fontWeight: 700, padding: "8px 16px", borderRadius: 20, cursor: "pointer" }}>
+                ⭐ Premium — €4.99/mese
+              </button>
+            </div>
+          )}
         </div>
       )}
 
