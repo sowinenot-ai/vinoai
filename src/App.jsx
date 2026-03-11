@@ -170,22 +170,16 @@ export default function VinoAI({ user, isPremium, isGuest, guestQuestions, onGue
                   </div>
                 ) : (
                   <div style={{ marginBottom: 24, textAlign: "center" }}>
-                    <input type="file" accept="image/*" capture="environment" hidden ref={fileInputRef} onChange={handleImageChange} />
-                    <button onClick={() => fileInputRef.current.click()} style={{ width: "100%", padding: "40px 20px", borderRadius: 16, background: `${MUTED}22`, border: `2px dashed ${GOLD}44`, color: GOLD, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-                      {imagePreview ? (
-                        <img src={imagePreview} alt="Preview" style={{ maxHeight: 150, borderRadius: 8 }} />
-                      ) : (
-                        <>
-                          <span style={{ fontSize: 32 }}>📸</span>
-                          <span style={{ fontSize: 14, fontWeight: 600 }}>Scatta una foto alla carta dei vini</span>
-                        </>
-                      )}
+                    <button onClick={() => fileInputRef.current.click()} style={{ width: "100%", padding: "24px", borderRadius: 12, background: `${MUTED}33`, border: `2px dashed ${GOLD}44`, color: GOLD, fontFamily: "'Cormorant Garamond', serif", fontSize: 15, cursor: "pointer" }}>
+                      {imagePreview ? "📸 Foto caricata — clicca per cambiare" : "📸 Fotografa la carta dei vini"}
                     </button>
+                    {imagePreview && <img src={imagePreview} alt="Carta" style={{ borderRadius: 12, maxHeight: 200, objectFit: "cover", border: `1px solid ${GOLD}33`, marginTop: 12, width: "100%" }} />}
+                    <input type="file" accept="image/*" capture="environment" hidden ref={fileInputRef} onChange={handleImageChange} />
                   </div>
                 )}
 
-                <button onClick={analyze} disabled={loading || (mode === "manual" && (!label || !price)) || (mode === "photo" && !image)} style={{ width: "100%", padding: "18px", background: `linear-gradient(135deg, ${GOLD}, #A07830)`, border: "none", borderRadius: 12, color: DARK, fontSize: 16, fontWeight: 800, cursor: "pointer", boxShadow: `0 4px 20px ${GOLD}33` }}>
-                  💎 ANALIZZA VALORE
+                <button onClick={analyze} disabled={loading || (mode === "manual" && (!label || !price)) || (mode === "photo" && !image)} style={{ width: "100%", padding: "16px", background: `linear-gradient(135deg, #8B6914, ${GOLD})`, border: "none", borderRadius: 12, color: DARK, fontFamily: "'Cormorant Garamond', serif", fontSize: 16, fontWeight: 700, cursor: "pointer", letterSpacing: "0.05em", opacity: loading ? 0.6 : 1 }}>
+                  {loading ? "💎 Analisi in corso..." : "💎 Trova le Perle Nascoste"}
                 </button>
                 
                 {isGuest && (
@@ -196,7 +190,7 @@ export default function VinoAI({ user, isPremium, isGuest, guestQuestions, onGue
               </>
             )}
 
-            {loading && <Spinner text="Il sommelier sta consultando il mercato..." />}
+            {loading && <Spinner text="Il sommelier analizza il valore del vino..." />}
 
             {result && !loading && (
               <div style={{ animation: "fadeIn 0.5s ease-out" }}>
