@@ -25,6 +25,14 @@ async function sbPost(body) {
   return r.json();
 }
 
+function scoreColor(score) {
+  if (!score && score !== 0) return "#888";
+  if (score >= 80) return "#E84040";
+  if (score >= 60) return "#FF8C00";
+  if (score >= 40) return GOLD;
+  return "#888";
+}
+
 export default function MapTab({ user, isPremium }) {
   const mapRef = useRef(null);
   const leafletMap = useRef(null);
@@ -37,6 +45,9 @@ export default function MapTab({ user, isPremium }) {
   const [leafletLoaded, setLeafletLoaded] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfResult, setPdfResult] = useState(null);
+  const [pdfs, setPdfs] = useState(null);
+  const [gems, setGems] = useState(null);
+
   const isAdmin = user?.email === "lanzifederico09@gmail.com";
 
   useEffect(() => {
@@ -62,27 +73,29 @@ export default function MapTab({ user, isPremium }) {
     }).addTo(map);
     leafletMap.current = map;
     renderMarkers(map, restaurants);
-  }, [leafletLoaded]);
+  }, [leafletLoaded, restaurants]);
 
   useEffect(() => {
-    if (leafletMap.current) renderMarkers(leafletMap.current, restaurants);
-  }, [restaurants]);
+    if (selected) {
+      loadDetails(selected.id);
+    } else {
+      setPdfs(null);
+      setGems(null);
+    }
+  }, [selected]);
 
   async function loadRestaurants() {
-    const [data1, data2] = await Promise.all([
-      sbFetch("restaurants?select=*,gems(gem_score,wine_name,classification,notes,markup_factor,restaurant_price,retail_price),pdf_analyses(*)&order=created_at.desc"),
-      sbFetch("map_restaurants?select=*&order=created_at.desc"),
+    const data = await sbFetch("map_restaurants?select=*&order=created_at.desc");
+    setRestaurants(Array.isArray(data) ? data : []);
+  }
+
+  async function loadDetails(restaurantId) {
+    const [pdfData, gemData] = await Promise.all([
+      sbFetch(`pdf_analyses?restaurant_id=eq.${restaurantId}&order=created_at.desc`),
+      sbFetch(`gems?restaurant_id=eq.${restaurantId}&order=gem_score.desc`)
     ]);
-    const r1 = Array.isArray(data1) ? data1 : [];
-    const r2 = Array.isArray(data2) ? data2 : [];
-    
-    const names = new Set();
-    const merged = [...r1, ...r2].filter(r => {
-      if (names.has(r.name)) return false;
-      names.add(r.name);
-      return true;
-    });
-    setRestaurants(merged);
+    setPdfs(Array.isArray(pdfData) ? pdfData : []);
+    setGems(Array.isArray(gemData) ? gemData : []);
   }
 
   function renderMarkers(map, data) {
@@ -127,81 +140,99 @@ export default function MapTab({ user, isPremium }) {
         body: JSON.stringify({ 
           pdfUrl: `${SUPABASE_URL}/storage/v1/object/public/pdf-menus/${fileName}`,
           restaurantName: selected.name,
+          restaurantId: selected.id,
           sectionName: "Carta Vini"
         })
       });
       const data = await res.json();
       setPdfResult(data.success ? "Analisi completata!" : "Errore analisi");
-      await loadRestaurants();
+      loadDetails(selected.id);
     } catch (e) { setPdfResult("Errore caricamento"); }
     setPdfLoading(false);
   }
 
   const r = selected;
-  const currentPdfs = r?.pdf_analyses || [];
 
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column", background: DARK, color: CREAM, position: "relative" }}>
       <div ref={mapRef} style={{ flex: 1, minHeight: 400 }} />
       
       {selected && (
-        <div style={{ position: "absolute", bottom: 20, left: 20, right: 20, zIndex: 1000, background: DARK, border: `1px solid ${GOLD}44`, borderRadius: 16, padding: 20, maxHeight: "60%", overflowY: "auto", boxShadow: "0 10px 30px rgba(0,0,0,0.8)" }}>
+        <div style={{ position: "absolute", bottom: 20, left: 20, right: 20, zIndex: 1000, background: DARK, border: `1px solid ${GOLD}44`, borderRadius: 16, padding: 20, maxHeight: "65%", overflowY: "auto", boxShadow: "0 10px 40px rgba(0,0,0,0.9)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 15 }}>
             <div>
-              <h3 style={{ margin: 0, color: GOLD, fontSize: 22, fontFamily: "'Cormorant Garamond', serif" }}>{r.name}</h3>
-              <p style={{ margin: "4px 0", fontSize: 13, color: CREAM + "88" }}>{r.address}, {r.city}</p>
+              <h3 style={{ margin: 0, color: GOLD, fontSize: 24, fontFamily: "'Cormorant Garamond', serif" }}>{r.name}</h3>
+              <p style={{ margin: "4px 0", fontSize: 13, color: `${CREAM}88` }}>{r.city}{r.address ? ` · ${r.address}` : ""}</p>
             </div>
-            <button onClick={() => setSelected(null)} style={{ background: "none", border: "none", color: CREAM, fontSize: 20, cursor: "pointer" }}>✕</button>
+            <button onClick={() => setSelected(null)} style={{ background: "none", border: "none", color: CREAM, fontSize: 22, cursor: "pointer", padding: 5 }}>✕</button>
           </div>
 
           <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-            <div style={{ background: `${MUTED}44`, padding: "6px 12px", borderRadius: 20, border: `1px solid ${GOLD}22`, fontSize: 11, color: GOLD, fontWeight: 700 }}>
-              {r.card_quality?.toUpperCase() || "QUALITÀ N/A"}
+            <div style={{ background: `${MUTED}44`, padding: "6px 12px", borderRadius: 20, border: `1px solid ${GOLD}22`, fontSize: 11, color: GOLD, fontWeight: 700, textTransform: "uppercase" }}>
+              {r.card_quality || "Qualità N/D"}
             </div>
             {r.has_sommelier && (
               <div style={{ background: `${BURGUNDY}33`, padding: "6px 12px", borderRadius: 20, border: `1px solid ${BURGUNDY}66`, fontSize: 11, color: "#FFB5C2", fontWeight: 700 }}>
-                🍷 SOMMELIER IN SALA
+                🍷 SOMMELIER
               </div>
             )}
           </div>
 
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ padding: 15, background: `linear-gradient(to bottom, ${GOLD}11, transparent)`, borderRadius: 12, border: `1px solid ${GOLD}22`, textAlign: "center" }}>
-              <div style={{ color: GOLD, fontSize: 14, fontWeight: 700, marginBottom: 4 }}>
-                {isPremium ? "Accesso Premium Attivo" : "Sblocca le Perle dell'AI"}
+          {/* Sezione Perle (Gems) */}
+          <div style={{ marginBottom: 25 }}>
+            <div style={{ fontSize: 11, color: GOLD, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 12, fontWeight: 700 }}>✨ Perle AI (Gemme Nascoste)</div>
+            {gems === null && <div style={{ color: `${CREAM}44`, fontSize: 12 }}>Caricamento gemme...</div>}
+            {gems !== null && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {gems.length === 0 ? (
+                  <div style={{ color: `${CREAM}33`, fontSize: 12, fontStyle: "italic" }}>Nessuna gemma individuata in questa carta</div>
+                ) : (isPremium || isAdmin) ? (
+                  gems.map(gem => (
+                    <div key={gem.id} style={{ padding: 12, background: `linear-gradient(135deg, ${MUTED}33, ${DARK})`, borderRadius: 12, borderLeft: `3px solid ${scoreColor(gem.gem_score)}` }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                        <div style={{ color: CREAM, fontSize: 14, fontWeight: 600 }}>{gem.wine_name}</div>
+                        <div style={{ color: scoreColor(gem.gem_score), fontWeight: 800, fontSize: 13 }}>{gem.gem_score}</div>
+                      </div>
+                      <div style={{ color: GOLD, fontSize: 11, textTransform: "uppercase", marginBottom: 6 }}>{gem.classification}</div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div style={{ color: `${CREAM}88`, fontSize: 12 }}>{gem.restaurant_price}€ <span style={{ fontSize: 10 }}>(vs {gem.retail_price}€)</span></div>
+                        <div style={{ color: `${CREAM}66`, fontSize: 11 }}>Markup: {gem.markup_factor}x</div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ padding: 20, background: `linear-gradient(to bottom, ${GOLD}11, transparent)`, borderRadius: 12, border: `1px solid ${GOLD}22`, textAlign: "center" }}>
+                    <div style={{ color: GOLD, fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Contenuto Esclusivo</div>
+                    <div style={{ color: `${CREAM}66`, fontSize: 12 }}>{gems.length} gemme — solo Premium</div>
+                  </div>
+                )}
               </div>
-              <div style={{ color: CREAM + "88", fontSize: 12, marginBottom: 12 }}>
-                {isPremium 
-                  ? "Puoi visualizzare l'analisi completa dei prezzi e le gemme nascoste." 
-                  : "Ottieni l'analisi completa dei prezzi e trova le gemme nascoste in questa carta."}
-              </div>
-              {!isPremium && !isAdmin && (
-                <button style={{ background: `linear-gradient(135deg, ${GOLD}, #A07830)`, border: "none", color: DARK, fontSize: 12, fontWeight: 700, padding: "8px 16px", borderRadius: 20, cursor: "pointer" }}>
-                  ⭐ Premium — €4.99/mese
-                </button>
-              )}
-            </div>
+            )}
           </div>
 
+          {/* Carte PDF */}
           <div>
-            <div style={{ fontSize: 11, color: GOLD, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>📄 Carte Analizzate</div>
-            {currentPdfs.length === 0 && <div style={{ color: CREAM + "33", fontSize: 12, fontStyle: "italic" }}>Nessuna carta caricata</div>}
-            {currentPdfs.map(pdf => (
+            <div style={{ fontSize: 11, color: GOLD, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>📄 Carte dei Vini</div>
+            {pdfs === null && <div style={{ color: `${CREAM}44`, fontSize: 12 }}>Caricamento...</div>}
+            {pdfs !== null && pdfs.length === 0 && <div style={{ color: `${CREAM}33`, fontSize: 12, fontStyle: "italic" }}>Nessuna carta caricata</div>}
+            {pdfs !== null && pdfs.map(pdf => (
               <div key={pdf.id} style={{ padding: "8px 12px", background: `${MUTED}22`, borderRadius: 8, marginBottom: 6, border: `1px solid ${GOLD}11` }}>
                 <div style={{ color: GOLD, fontSize: 13 }}>📋 {pdf.section_name || "Carta completa"}</div>
-                <div style={{ color: CREAM + "44", fontSize: 11, marginTop: 2 }}>{new Date(pdf.created_at).toLocaleDateString("it-IT")}</div>
+                <div style={{ color: `${CREAM}44`, fontSize: 11, marginTop: 2 }}>{new Date(pdf.created_at).toLocaleDateString("it-IT")}</div>
               </div>
             ))}
           </div>
 
-          {(r.notes || r.sommelier_notes || r.wine_list_notes) && (
-            <div style={{ fontSize: 13, color: CREAM + "77", lineHeight: 1.6, fontStyle: "italic", marginTop: 15, borderTop: `1px solid ${GOLD}11`, paddingTop: 12 }}>
-              {r.notes || r.sommelier_notes || r.wine_list_notes}
+          {/* Note */}
+          {(r.notes || r.wine_list_notes) && (
+            <div style={{ fontSize: 12, color: `${CREAM}66`, lineHeight: 1.6, fontStyle: "italic", marginTop: 20, borderTop: `1px solid ${GOLD}11`, paddingTop: 12 }}>
+              {r.notes || r.wine_list_notes}
             </div>
           )}
 
+          {/* Admin Upload */}
           {isAdmin && (
-            <div style={{ borderTop: `1px solid ${GOLD}22`, paddingTop: 15, marginTop: 15 }}>
+            <div style={{ borderTop: `1px solid ${GOLD}22`, paddingTop: 15, marginTop: 20 }}>
               <div style={{ fontSize: 11, color: GOLD, marginBottom: 10, fontWeight: "bold" }}>ADMIN: CARICA CARTA VINI (PDF)</div>
               <input type="file" accept="application/pdf" onChange={handleFileUpload} disabled={pdfLoading} style={{ fontSize: 12 }} />
               {pdfLoading && <div style={{ fontSize: 12, marginTop: 8, color: GOLD }}>Analisi AI in corso...</div>}
@@ -220,11 +251,11 @@ export default function MapTab({ user, isPremium }) {
       {showForm && (
         <div style={{ position: "absolute", top: 75, right: 20, zIndex: 1000, background: DARK, border: `1px solid ${GOLD}44`, borderRadius: 16, padding: 20, width: 300, display: "flex", flexDirection: "column", gap: 12, boxShadow: "0 10px 30px rgba(0,0,0,0.8)" }}>
           <div style={{ fontSize: 12, color: GOLD, fontWeight: "bold" }}>NUOVO PUNTO MAPPA</div>
-          <input placeholder="Nome Locale" style={{ padding: 10, background: MUTED + "44", border: `1px solid ${GOLD}22`, color: CREAM, borderRadius: 8 }} value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
-          <input placeholder="Città" style={{ padding: 10, background: MUTED + "44", border: `1px solid ${GOLD}22`, color: CREAM, borderRadius: 8 }} value={form.city} onChange={e => setForm({...form, city: e.target.value})} />
+          <input placeholder="Nome Locale" style={{ padding: 10, background: `${MUTED}44`, border: `1px solid ${GOLD}22`, color: CREAM, borderRadius: 8 }} value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
+          <input placeholder="Città" style={{ padding: 10, background: `${MUTED}44`, border: `1px solid ${GOLD}22`, color: CREAM, borderRadius: 8 }} value={form.city} onChange={e => setForm({...form, city: e.target.value})} />
           <div style={{ display: "flex", gap: 8 }}>
-            <input placeholder="Lat" style={{ padding: 10, background: MUTED + "44", border: `1px solid ${GOLD}22`, color: CREAM, borderRadius: 8, flex: 1 }} value={form.lat} onChange={e => setForm({...form, lat: e.target.value})} />
-            <input placeholder="Lng" style={{ padding: 10, background: MUTED + "44", border: `1px solid ${GOLD}22`, color: CREAM, borderRadius: 8, flex: 1 }} value={form.lng} onChange={e => setForm({...form, lng: e.target.value})} />
+            <input placeholder="Lat" style={{ padding: 10, background: `${MUTED}44`, border: `1px solid ${GOLD}22`, color: CREAM, borderRadius: 8, flex: 1 }} value={form.lat} onChange={e => setForm({...form, lat: e.target.value})} />
+            <input placeholder="Lng" style={{ padding: 10, background: `${MUTED}44`, border: `1px solid ${GOLD}22`, color: CREAM, borderRadius: 8, flex: 1 }} value={form.lng} onChange={e => setForm({...form, lng: e.target.value})} />
           </div>
           <button onClick={handleAdd} disabled={saving} style={{ background: GOLD, color: DARK, border: "none", padding: 12, fontWeight: "bold", borderRadius: 8, cursor: "pointer" }}>
             {saving ? "SALVATAGGIO..." : "SALVA LOCALE"}
