@@ -12,8 +12,6 @@ export default function AppWrapper() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isPremium, setIsPremium] = useState(false);
-  const [isGuest, setIsGuest] = useState(() => localStorage.getItem("sw_guest") === "1");
-  const [guestQuestions, setGuestQuestions] = useState(() => parseInt(localStorage.getItem("sw_gq") || "0"));
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -58,33 +56,15 @@ export default function AppWrapper() {
     );
   }
 
-  if (!user && !isGuest) return <AuthScreen onLogin={setUser} onGuest={() => { setIsGuest(true); localStorage.setItem("sw_guest", "1"); }} />;
-
-  if (isGuest) return (
-    <VinoAI
-      user={{ email: "ospite@sowinenot.app", user_metadata: { name: "Ospite" } }}
-      supabase={supabase}
-      isPremium={false}
-      isGuest={true}
-      guestQuestions={guestQuestions}
-      onGuestQuestion={() => setGuestQuestions(q => {
-          const next = q + 1;
-          localStorage.setItem("sw_gq", next);
-          return next;
-        })}
-      onGuestSignup={() => {
-          setIsGuest(false);
-          localStorage.removeItem("sw_guest");
-        }}
-    />
-  );
+  if (!user) {
+    return <AuthScreen onLogin={setUser} />;
+  }
 
   return (
     <VinoAI 
       user={user} 
       supabase={supabase} 
       isPremium={isPremium} 
-      isGuest={false}
     />
   );
 }
