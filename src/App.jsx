@@ -75,6 +75,7 @@ function ChatBubble({ msg }) {
         <div style={{ width: 36, height: 36, borderRadius: "50%", background: `linear-gradient(135deg, ${BURGUNDY}, #9B2335)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0, marginRight: 10, marginTop: 2, border: `1px solid ${GOLD}33` }}>🍷</div>
       )}
       <div style={{ maxWidth: "72%", background: isUser ? `linear-gradient(135deg, ${BURGUNDY}, #9B2335)` : `${MUTED}88`, border: `1px solid ${isUser ? BURGUNDY : GOLD + "33"}`, borderRadius: isUser ? "18px 18px 4px 18px" : "18px 18px 18px 4px", padding: "12px 16px", color: isUser ? CREAM : "#E8D9BF", fontFamily: "Georgia, serif", fontSize: 14.5, lineHeight: 1.75, backdropFilter: "blur(8px)" }}>
+        {msg.image && <img src={msg.image} alt="carta vini" style={{ maxWidth: "100%", borderRadius: 8, marginBottom: 8, display: "block" }} />}
         {msg.content.split("\n").map((line, i) => (
           <span key={i}>{line}{i < msg.content.split("\n").length - 1 && <br />}</span>
         ))}
@@ -97,6 +98,8 @@ export default function VinoAI({ user, supabase, isPremium = false }) {
   const [messages, setMessages] = useState([{ role: "assistant", content: "Benvenuto. Sono il tuo sommelier personale. Chiedimi tutto sul mondo del vino: abbinamenti, annate, cantine, o cosa aprire stasera." }]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [chatImage, setChatImage] = useState(null); // { base64, preview }
+  const imageInputRef = useRef();
   const [cellar, setCellar] = useState(CELLAR_INIT);
   const [newWine, setNewWine] = useState({ name: "", producer: "", year: "", region: "", qty: 1, notes: "" });
   const [addingWine, setAddingWine] = useState(false);
@@ -122,15 +125,48 @@ export default function VinoAI({ user, supabase, isPremium = false }) {
     }, () => {});
   }, []);
 
+  async function handleImageUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const base64 = ev.target.result.split(",")[1];
+      const preview = ev.target.result;
+      setChatImage({ base64, preview, mediaType: file.type });
+    };
+    reader.readAsDataURL(file);
+  }
+
   async function sendMessage(text) {
     const userText = text || input.trim();
-    if (!userText || loading) return;
+    if ((!userText && !chatImage) || loading) return;
     setInput("");
-    const newMsgs = [...messages, { role: "user", content: userText }];
+    const imageToSend = chatImage;
+    setChatImage(null);
+
+    const userMsg = {
+      role: "user",
+      content: userText || "Analizza questa carta dei vini",
+      image: imageToSend ? imageToSend.preview : null,
+    };
+    const newMsgs = [...messages, userMsg];
     setMessages(newMsgs);
     setLoading(true);
     try {
-      const reply = await askClaude(newMsgs.map(m => ({ role: m.role, content: m.content })));
+      // Build API messages - include image if present
+      const apiMsgs = newMsgs.map(m => {
+        if (m.image && imageToSend) {
+          return {
+            role: "user",
+            content: [
+              { type: "image", source: { type: "base64", media_type: imageToSend.mediaType, data: imageToSend.base64 } },
+              { type: "text", text: m.content }
+            ]
+          };
+        }
+        return { role: m.role, content: m.content };
+      });
+      const reply = await askClaude(apiMsgs);
       setMessages(prev => [...prev, { role: "assistant", content: reply }]);
     } catch {
       setMessages(prev => [...prev, { role: "assistant", content: "Scusa, si è verificato un errore. Riprova." }]);
@@ -231,8 +267,16 @@ export default function VinoAI({ user, supabase, isPremium = false }) {
               <div ref={bottomRef} />
             </div>
             <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
-              <textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} placeholder="Chiedi al tuo sommelier..." rows={2} style={{ ...inputStyle, resize: "none", flex: 1, padding: "12px 16px", borderRadius: 12, lineHeight: 1.5, fontSize: 14 }} />
-              <button onClick={() => sendMessage()} disabled={loading || !input.trim()} style={{ padding: "12px 22px", borderRadius: 12, background: loading || !input.trim() ? `${MUTED}88` : `linear-gradient(135deg, ${BURGUNDY}, #9B2335)`, border: `1px solid ${BURGUNDY}`, color: CREAM, cursor: loading ? "not-allowed" : "pointer", fontFamily: "'Cormorant Garamond', serif", fontSize: 15, transition: "all 0.2s", whiteSpace: "nowrap" }}>Invia →</button>
+              {chatImage && (
+                <div style={{ position: "relative" }}>
+                  <img src={chatImage.preview} alt="preview" style={{ width: 52, height: 52, objectFit: "cover", borderRadius: 10, border: `2px solid ${GOLD}` }} />
+                  <button onClick={() => setChatImage(null)} style={{ position: "absolute", top: -6, right: -6, background: BURGUNDY, border: "none", borderRadius: "50%", width: 18, height: 18, color: CREAM, fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+                </div>
+              )}
+              <textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} placeholder={chatImage ? "Aggiungi un messaggio (opzionale)..." : "Chiedi al tuo sommelier..."} rows={2} style={{ ...inputStyle, resize: "none", flex: 1, padding: "12px 16px", borderRadius: 12, lineHeight: 1.5, fontSize: 14 }} />
+              <input ref={imageInputRef} type="file" accept="image/*" capture="environment" onChange={handleImageUpload} style={{ display: "none" }} />
+              <button onClick={() => imageInputRef.current?.click()} title="Fotografa la carta dei vini" style={{ padding: "12px 14px", borderRadius: 12, background: chatImage ? `linear-gradient(135deg, ${GOLD}, #A07830)` : `${MUTED}88`, border: `1px solid ${GOLD}44`, color: CREAM, cursor: "pointer", fontSize: 18, flexShrink: 0 }}>📷</button>
+              <button onClick={() => sendMessage()} disabled={loading || (!input.trim() && !chatImage)} style={{ padding: "12px 22px", borderRadius: 12, background: loading || (!input.trim() && !chatImage) ? `${MUTED}88` : `linear-gradient(135deg, ${BURGUNDY}, #9B2335)`, border: `1px solid ${BURGUNDY}`, color: CREAM, cursor: loading ? "not-allowed" : "pointer", fontFamily: "'Cormorant Garamond', serif", fontSize: 15, transition: "all 0.2s", whiteSpace: "nowrap" }}>Invia →</button>
             </div>
           </div>
         )}
