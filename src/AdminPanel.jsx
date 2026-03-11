@@ -140,206 +140,194 @@ export default function AdminPanel({ user, onClose }) {
       });
       const data = await res.json();
       setYtResult(data);
-      if (data.success) {
-        setYtUrl("");
-        await loadItems();
-      }
+      if (data.success) { setYtUrl(""); await loadItems(); }
     } catch (e) {
       setYtResult({ success: false, error: "Errore di rete" });
     }
     setYtLoading(false);
   }
 
-  const inputStyle = { background: `${MUTED}55`, border: `1px solid ${GOLD}33`, borderRadius: 8, padding: "10px 14px", color: CREAM, fontFamily: "Georgia, serif", fontSize: 13, outline: "none", width: "100%", boxSizing: "border-box" };
-  const labelStyle = { color: GOLD, fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, display: "block" };
-  const btnStyle = { background: GOLD, color: DARK, border: "none", borderRadius: 8, padding: "10px 20px", fontWeight: "bold", cursor: "pointer", fontFamily: "Georgia, serif", fontSize: 13 };
-  const tabBtn = (id, label) => (
-    <button 
-      onClick={() => setActiveTab(id)}
-      style={{ 
-        background: activeTab === id ? `${GOLD}22` : "transparent",
-        color: activeTab === id ? GOLD : `${CREAM}88`,
-        border: `1px solid ${activeTab === id ? GOLD : "transparent"}`,
-        borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontSize: 13, fontWeight: activeTab === id ? "bold" : "normal", transition: "all 0.2s"
-      }}>
-      {label}
-    </button>
-  );
+  const inputStyle = {
+    background: `${MUTED}55`, border: `1px solid ${GOLD}33`, borderRadius: 8,
+    padding: "10px 14px", color: CREAM, fontFamily: "Georgia, serif",
+    fontSize: 13, outline: "none", width: "100%", boxSizing: "border-box"
+  };
 
   const getCategoryIcon = (cat) => {
-    if (cat === "notizia_vino") return "📰";
-    if (cat === "libro_vino") return "📚";
-    if (cat === "intervista") return "🎤";
-    if (cat === "degustazione") return "🍷";
-    if (cat === "articolo") return "📰";
-    if (cat === "guida") return "🗺️";
-    return "📄";
+    const icons = { intervista: "🎤", degustazione: "🍷", articolo: "📰", guida: "🗺️", video_youtube: "▶️", notizia_vino: "📰", libro_vino: "📚" };
+    return icons[cat] || "📄";
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: `${DARK}ee`, backdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <div style={{ width: "100%", maxWidth: 900, maxHeight: "90vh", background: DARK, border: `1px solid ${GOLD}33`, borderRadius: 24, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: `0 20px 50px rgba(0,0,0,0.5)` }}>
-        
-        {/* Header */}
-        <div style={{ padding: "20px 30px", borderBottom: `1px solid ${GOLD}11`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <h2 style={{ color: GOLD, fontFamily: "'Cormorant Garamond', serif", fontSize: 24, margin: 0 }}>Knowledge Base Admin</h2>
-            <div style={{ color: `${CREAM}66`, fontSize: 12 }}>Gestisci la mente del sommelier</div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&display=swap');`}</style>
+
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 24, fontWeight: 600, margin: 0, color: CREAM }}>🧠 Knowledge Base</h2>
+          <p style={{ margin: "4px 0 0", fontSize: 12, color: `${GOLD}88` }}>{items.length} contenuti · L'AI impara da questi</p>
+        </div>
+        <button onClick={onClose} style={{ padding: "6px 14px", borderRadius: 20, background: "transparent", border: `1px solid ${GOLD}44`, color: GOLD, fontSize: 12, cursor: "pointer" }}>← Torna all'app</button>
+      </div>
+
+      {/* Tab selector */}
+      <div style={{ display: "flex", background: `${MUTED}44`, borderRadius: 10, padding: 4, border: `1px solid ${GOLD}22` }}>
+        {[{ key: "testo", label: "✍️ Testo" }, { key: "news", label: "📰 Notizie" }, { key: "libri", label: "📚 Libri" }, { key: "youtube", label: "▶️ YouTube" }].map(t => (
+          <button key={t.key} onClick={() => setActiveTab(t.key)} style={{ flex: 1, padding: "9px", borderRadius: 7, background: activeTab === t.key ? `linear-gradient(135deg, ${BURGUNDY}, #9B2335)` : "transparent", border: "none", color: activeTab === t.key ? CREAM : `${CREAM}66`, fontFamily: "Georgia, serif", fontSize: 13, cursor: "pointer" }}>{t.label}</button>
+        ))}
+      </div>
+
+      {/* Tab: Testo */}
+      {activeTab === "testo" && (
+        <div style={{ background: `${MUTED}33`, borderRadius: 16, padding: 20, border: `1px solid ${GOLD}22` }}>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+            {CATEGORIES.map(c => (
+              <button key={c.key} onClick={() => setForm(f => ({ ...f, category: c.key }))} style={{ padding: "6px 12px", borderRadius: 20, background: form.category === c.key ? `linear-gradient(135deg, ${BURGUNDY}, #9B2335)` : `${MUTED}55`, border: `1px solid ${form.category === c.key ? BURGUNDY : `${GOLD}22`}`, color: CREAM, fontSize: 12, cursor: "pointer", fontFamily: "Georgia, serif" }}>{c.label}</button>
+            ))}
           </div>
-          <button onClick={onClose} style={{ background: `${MUTED}44`, border: "none", color: CREAM, width: 32, height: 32, borderRadius: 16, cursor: "pointer" }}>✕</button>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Titolo (es. 'Intervista a Gaja sul Barbaresco')" style={inputStyle} />
+            <input value={form.source} onChange={e => setForm(f => ({ ...f, source: e.target.value }))} placeholder="Fonte (es. 'Angelo Gaja', 'Gambero Rosso')" style={inputStyle} />
+            <textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} placeholder="Incolla qui il testo..." rows={7} style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }} />
+            <button onClick={saveItem} disabled={saving || !form.title || !form.content} style={{ padding: "12px", background: saved ? "#2A7A2A" : `linear-gradient(135deg, ${GOLD}, #8B6914)`, border: "none", borderRadius: 10, color: DARK, fontFamily: "'Cormorant Garamond', serif", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
+              {saving ? "Salvataggio..." : saved ? "✓ Salvato!" : "Salva nel database →"}
+            </button>
+          </div>
         </div>
+      )}
 
-        {/* Tabs */}
-        <div style={{ display: "flex", gap: 8, padding: "15px 30px", borderBottom: `1px solid ${GOLD}11` }}>
-          {tabBtn("testo", "✍️ Nuovo Testo")}
-          {tabBtn("notizia", "📰 Notizia Flash")}
-          {tabBtn("youtube", "📹 Da YouTube")}
-          {tabBtn("libro", "📚 Carica Libro")}
-        </div>
-
-        <div style={{ flex: 1, overflowY: "auto", padding: 30 }}>
-          
-          {/* TAB: TESTO LIBERO */}
-          {activeTab === "testo" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 15 }}>
-                <div>
-                  <label style={labelStyle}>Titolo</label>
-                  <input style={inputStyle} value={form.title} onChange={e => setForm({...form, title: e.target.value})} placeholder="Es: Guida al Sangiovese" />
-                </div>
-                <div>
-                  <label style={labelStyle}>Categoria</label>
-                  <select style={inputStyle} value={form.category} onChange={e => setForm({...form, category: e.target.value})}>
-                    {CATEGORIES.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label style={labelStyle}>Fonte / Autore</label>
-                <input style={inputStyle} value={form.source} onChange={e => setForm({...form, source: e.target.value})} placeholder="Es: James Suckling" />
-              </div>
-              <div>
-                <label style={labelStyle}>Contenuto</label>
-                <textarea style={{ ...inputStyle, height: 200, resize: "none" }} value={form.content} onChange={e => setForm({...form, content: e.target.value})} placeholder="Incolla qui il testo..." />
-              </div>
-              <button onClick={saveItem} disabled={saving} style={{ ...btnStyle, opacity: saving ? 0.5 : 1 }}>
-                {saving ? "Salvataggio..." : saved ? "✅ Salvato!" : "Salva Contenuto"}
-              </button>
+      {/* Tab: Notizie */}
+      {activeTab === "news" && (
+        <div style={{ background: `${MUTED}33`, borderRadius: 16, padding: 20, border: `1px solid ${GOLD}22` }}>
+          <div style={{ fontSize: 12, color: GOLD + "88", marginBottom: 16, lineHeight: 1.6 }}>
+            Aggiungi le ultime notizie del mondo del vino — l'AI le userà nelle conversazioni.
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 10 }}>
+              <input value={news.title} onChange={e => setNews(n => ({ ...n, title: e.target.value }))} placeholder="Titolo notizia" style={inputStyle} />
+              <input value={news.date} onChange={e => setNews(n => ({ ...n, date: e.target.value }))} placeholder="Data" style={{ ...inputStyle, width: 130 }} />
             </div>
-          )}
-
-          {/* TAB: NOTIZIA FLASH */}
-          {activeTab === "notizia" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 15 }}>
-                <div>
-                  <label style={labelStyle}>Titolo Notizia</label>
-                  <input style={inputStyle} value={news.title} onChange={e => setNews({...news, title: e.target.value})} placeholder="Es: Vendemmia 2024 record..." />
-                </div>
-                <div>
-                  <label style={labelStyle}>Data (Opzionale)</label>
-                  <input style={inputStyle} value={news.date} onChange={e => setNews({...news, date: e.target.value})} placeholder="Es: 15 Ottobre 2024" />
-                </div>
-              </div>
-              <div>
-                <label style={labelStyle}>Fonte Originale</label>
-                <input style={inputStyle} value={news.source} onChange={e => setNews({...news, source: e.target.value})} placeholder="Es: Wine Spectator" />
-              </div>
-              <div>
-                <label style={labelStyle}>Breve Riassunto Notizia</label>
-                <textarea style={{ ...inputStyle, height: 120, resize: "none" }} value={news.content} onChange={e => setNews({...news, content: e.target.value})} placeholder="Incolla qui il contenuto della notizia..." />
-              </div>
-              <button onClick={saveNews} disabled={newsSaving} style={{ ...btnStyle, opacity: newsSaving ? 0.5 : 1 }}>
-                {newsSaving ? "Pubblicazione..." : newsSaved ? "✅ Notizia Salvata!" : "Salva Notizia"}
-              </button>
-            </div>
-          )}
-
-          {/* TAB: YOUTUBE */}
-          {activeTab === "youtube" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              <label style={labelStyle}>URL Video YouTube</label>
-              <div style={{ display: "flex", gap: 10 }}>
-                <input style={inputStyle} value={ytUrl} onChange={e => setYtUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=..." />
-                <button onClick={importYoutube} disabled={ytLoading} style={{ ...btnStyle, whiteSpace: "nowrap" }}>
-                  {ytLoading ? "Importazione..." : "Importa Trascrizione"}
-                </button>
-              </div>
-              {ytResult && (
-                <div style={{ padding: 15, borderRadius: 12, background: ytResult.success ? `${GOLD}11` : `${BURGUNDY}22`, color: ytResult.success ? CREAM : "#ff8888", fontSize: 13 }}>
-                  {ytResult.success ? `✅ Video importato: ${ytResult.title}` : `❌ Errore: ${ytResult.error}`}
-                </div>
-              )}
-              <div style={{ color: `${CREAM}44`, fontSize: 12, fontStyle: "italic" }}>
-                L'AI scaricherà la trascrizione automatica, la pulirà e la aggiungerà alla base di conoscenza.
-              </div>
-            </div>
-          )}
-
-          {/* TAB: LIBRO PDF */}
-          {activeTab === "libro" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 15 }}>
-                <div>
-                  <label style={labelStyle}>Titolo Libro</label>
-                  <input style={inputStyle} value={bookTitle} onChange={e => setBookTitle(e.target.value)} placeholder="Es: Enciclopedia del Vino" />
-                </div>
-                <div>
-                  <label style={labelStyle}>Autore</label>
-                  <input style={inputStyle} value={bookAuthor} onChange={e => setBookAuthor(e.target.value)} placeholder="Es: Hugh Johnson" />
-                </div>
-              </div>
-              <div>
-                <label style={labelStyle}>File PDF (Max 50MB)</label>
-                <input type="file" accept=".pdf" onChange={e => setBookFile(e.target.files[0])} style={{ ...inputStyle, padding: 8 }} />
-              </div>
-              
-              <button onClick={saveBook} disabled={bookLoading || !bookFile || !bookTitle} style={{ ...btnStyle, opacity: (bookLoading || !bookFile || !bookTitle) ? 0.5 : 1 }}>
-                {bookLoading ? "Elaborazione in corso..." : "Analizza e Salva Libro"}
-              </button>
-
-              {bookStatus && (
-                <div style={{ padding: 15, borderRadius: 12, background: `${GOLD}11`, color: GOLD, fontSize: 13, textAlign: "center", border: `1px solid ${GOLD}22` }}>
-                  {bookStatus}
-                </div>
-              )}
-              {bookDone && !bookStatus && (
-                <div style={{ padding: 15, borderRadius: 12, background: `${GOLD}22`, color: CREAM, fontSize: 13, textAlign: "center" }}>
-                  ✅ Libro elaborato e aggiunto con successo!
-                </div>
-              )}
-              <div style={{ color: `${CREAM}44`, fontSize: 11 }}>
-                Nota: Il PDF verrà caricato, letto dall'AI (Vision/Text) e riassunto in blocchi logici ottimizzati per la ricerca.
-              </div>
-            </div>
-          )}
-
-          {/* LISTA ELEMENTI */}
-          <div style={{ marginTop: 40, paddingTop: 30, borderTop: `1px solid ${GOLD}22` }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, color: GOLD, fontWeight: "bold", fontSize: 12, letterSpacing: 1, textTransform: "uppercase" }}>
-              Tutti i contenuti ({items.length})
-            </div>
-            {loading && <div style={{ color: `${CREAM}44`, fontSize: 13 }}>Caricamento...</div>}
-            {items.length === 0 && !loading && (
-              <div style={{ padding: 20, textAlign: "center", color: `${CREAM}44`, fontSize: 13, background: `${MUTED}22`, borderRadius: 12 }}>
-                Nessun contenuto ancora. Inizia aggiungendo un testo, una notizia o un libro!
-              </div>
-            )}
-            {items.map((item, i) => (
-              <div key={i} style={{ padding: "12px 16px", background: `${MUTED}22`, borderRadius: 10, border: `1px solid ${GOLD}11`, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 15, color: CREAM, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {getCategoryIcon(item.category)} {item.title}
-                  </div>
-                  <div style={{ fontSize: 11, color: `${GOLD}88`, marginTop: 2 }}>
-                    {item.source} · {new Date(item.created_at).toLocaleDateString("it")}
-                  </div>
-                </div>
-                <button onClick={() => deleteItem(item.id)} style={{ background: "none", border: "none", color: `${BURGUNDY}aa`, cursor: "pointer", fontSize: 18, padding: "0 10px" }}>×</button>
+            <textarea value={news.content} onChange={e => setNews(n => ({ ...n, content: e.target.value }))} placeholder="Testo della notizia..." rows={6} style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }} />
+            <input value={news.source} onChange={e => setNews(n => ({ ...n, source: e.target.value }))} placeholder="Fonte (es. 'Decanter', 'Gambero Rosso')" style={inputStyle} />
+            <button onClick={saveNews} disabled={newsSaving || !news.title || !news.content}
+              style={{ padding: "12px", background: newsSaved ? "#2A7A2A" : `linear-gradient(135deg, ${GOLD}, #8B6914)`, border: "none", borderRadius: 10, color: DARK, fontFamily: "'Cormorant Garamond', serif", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
+              {newsSaving ? "Salvataggio..." : newsSaved ? "✓ Notizia salvata!" : "📰 Pubblica notizia →"}
+            </button>
+          </div>
+          <div style={{ marginTop: 20 }}>
+            <div style={{ fontSize: 11, color: GOLD, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>Ultime notizie nel database</div>
+            {items.filter(i => i.category === "notizia_vino").length === 0 && <div style={{ color: CREAM + "44", fontSize: 13, fontStyle: "italic" }}>Nessuna notizia ancora</div>}
+            {items.filter(i => i.category === "notizia_vino").slice(0, 5).map(item => (
+              <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${GOLD}11` }}>
+                <div style={{ color: CREAM + "CC", fontSize: 13 }}>{item.title?.replace(/^📰 NOTIZIA.*?— /, "")}</div>
+                <button onClick={() => deleteItem(item.id)} style={{ background: "none", border: "none", color: CREAM + "33", cursor: "pointer", fontSize: 16 }}>✕</button>
               </div>
             ))}
           </div>
         </div>
+      )}
+
+      {/* Tab: Libri PDF */}
+      {activeTab === "libri" && (
+        <div style={{ background: `${MUTED}33`, borderRadius: 16, padding: 20, border: `1px solid ${GOLD}22` }}>
+          <div style={{ fontSize: 12, color: GOLD + "88", marginBottom: 16, lineHeight: 1.6 }}>
+            Carica libri digitali sul vino — l'AI li legge e impara da ogni pagina. Max 100 pagine per PDF.
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <input value={bookTitle} onChange={e => setBookTitle(e.target.value)} placeholder="Titolo libro *" style={inputStyle} />
+            <input value={bookAuthor} onChange={e => setBookAuthor(e.target.value)} placeholder="Autore (es. 'Jancis Robinson')" style={inputStyle} />
+            <div onClick={() => document.getElementById("bookFileInput").click()}
+              style={{ ...inputStyle, cursor: "pointer", display: "flex", alignItems: "center", gap: 10, minHeight: 44 }}>
+              <span style={{ fontSize: 20 }}>📎</span>
+              <span style={{ color: bookFile ? GOLD : CREAM + "44" }}>
+                {bookFile ? `${bookFile.name} (${(bookFile.size / 1024 / 1024).toFixed(1)} MB)` : "Clicca per caricare il PDF..."}
+              </span>
+              <input id="bookFileInput" type="file" accept=".pdf,application/pdf"
+                onChange={e => { setBookFile(e.target.files[0]); setBookDone(false); setBookStatus(""); }}
+                style={{ display: "none" }} />
+            </div>
+            <button onClick={saveBook} disabled={bookLoading || !bookFile || !bookTitle}
+              style={{ padding: "12px", background: bookDone ? "#2A7A2A" : bookLoading ? `${MUTED}88` : `linear-gradient(135deg, ${GOLD}, #8B6914)`, border: "none", borderRadius: 10, color: bookLoading ? CREAM : DARK, fontFamily: "'Cormorant Garamond', serif", fontSize: 15, fontWeight: 700, cursor: bookLoading || !bookFile || !bookTitle ? "not-allowed" : "pointer" }}>
+              {bookLoading ? (bookStatus || "Elaborazione...") : bookDone ? "✓ Libro salvato!" : "📚 Carica e impara →"}
+            </button>
+            {bookStatus && !bookLoading && (
+              <div style={{ fontSize: 13, color: bookStatus.startsWith("❌") ? "#E84040" : GOLD, textAlign: "center" }}>{bookStatus}</div>
+            )}
+          </div>
+          <div style={{ marginTop: 20 }}>
+            <div style={{ fontSize: 11, color: GOLD, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>
+              Libri nel database ({items.filter(i => i.category === "libro_vino").length})
+            </div>
+            {items.filter(i => i.category === "libro_vino").length === 0 && <div style={{ color: CREAM + "44", fontSize: 13, fontStyle: "italic" }}>Nessun libro ancora caricato</div>}
+            {items.filter(i => i.category === "libro_vino").map(item => (
+              <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${GOLD}11` }}>
+                <div>
+                  <div style={{ color: CREAM + "CC", fontSize: 13 }}>{item.title}</div>
+                  <div style={{ color: CREAM + "44", fontSize: 11, marginTop: 2 }}>{new Date(item.created_at).toLocaleDateString("it-IT")}</div>
+                </div>
+                <button onClick={() => deleteItem(item.id)} style={{ background: "none", border: "none", color: CREAM + "33", cursor: "pointer", fontSize: 16 }}>✕</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Tab: YouTube */}
+      {activeTab === "youtube" && (
+        <div style={{ background: `${MUTED}33`, borderRadius: 16, padding: 20, border: `1px solid ${GOLD}22` }}>
+          <div style={{ fontSize: 13, color: `${GOLD}88`, marginBottom: 16, lineHeight: 1.6 }}>
+            Incolla il link di qualsiasi video YouTube sul vino. Estrarremo i sottotitoli e li salveremo nel database.
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <input value={ytUrl} onChange={e => setYtUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=..." style={inputStyle} onKeyDown={e => e.key === "Enter" && importYoutube()} />
+            <button onClick={importYoutube} disabled={ytLoading || !ytUrl.trim()} style={{ padding: "12px", background: `linear-gradient(135deg, #CC0000, #990000)`, border: "none", borderRadius: 10, color: CREAM, fontFamily: "'Cormorant Garamond', serif", fontSize: 15, fontWeight: 700, cursor: "pointer", opacity: ytLoading ? 0.7 : 1 }}>
+              {ytLoading ? "⏳ Importazione in corso..." : "▶️ Importa da YouTube →"}
+            </button>
+            {ytResult && (
+              <div style={{ padding: 16, borderRadius: 10, background: ytResult.success ? "#1A3A1A" : "#3A1A1A", border: `1px solid ${ytResult.success ? "#4A8A4A" : "#8A4A4A"}` }}>
+                {ytResult.success ? (
+                  <div>
+                    <div style={{ color: "#88CC88", fontWeight: 600, marginBottom: 6 }}>✓ Importato!</div>
+                    <div style={{ color: CREAM, fontSize: 13 }}>{ytResult.videoTitle}</div>
+                    <div style={{ color: `${CREAM}88`, fontSize: 12, marginTop: 4 }}>{ytResult.chunks} chunk salvati</div>
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ color: "#CC8888", fontWeight: 600, marginBottom: 4 }}>✗ Errore</div>
+                    <div style={{ color: `${CREAM}88`, fontSize: 13 }}>{ytResult.error}</div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Lista tutti i contenuti */}
+      <div>
+        <div style={{ fontSize: 12, color: GOLD, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 10 }}>
+          Tutti i contenuti ({items.length})
+        </div>
+        {loading && <div style={{ color: `${CREAM}44`, fontSize: 13 }}>Caricamento...</div>}
+        {items.length === 0 && !loading && (
+          <div style={{ padding: 20, textAlign: "center", color: `${CREAM}44`, fontSize: 13, background: `${MUTED}22`, borderRadius: 12 }}>
+            Nessun contenuto ancora. Inizia aggiungendo un testo, una notizia o un libro!
+          </div>
+        )}
+        {items.map((item, i) => (
+          <div key={i} style={{ padding: "12px 16px", background: `${MUTED}22`, borderRadius: 10, border: `1px solid ${GOLD}11`, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 15, color: CREAM, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {getCategoryIcon(item.category)} {item.title}
+              </div>
+              <div style={{ fontSize: 11, color: `${GOLD}88`, marginTop: 2 }}>
+                {item.source} · {new Date(item.created_at).toLocaleDateString("it")}
+              </div>
+            </div>
+            <button onClick={() => deleteItem(item.id)} style={{ background: "none", border: "none", color: `${CREAM}33`, cursor: "pointer", fontSize: 16, padding: "4px 8px", flexShrink: 0, marginLeft: 8 }}>✕</button>
+          </div>
+        ))}
       </div>
     </div>
   );
