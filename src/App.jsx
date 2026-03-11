@@ -82,6 +82,7 @@ function Spinner({ text = "Il sommelier sta riflettendo..." }) {
 }
 
 function ChatBubble({ msg }) {
+  // (wineAction handled in parent)
   const isUser = msg.role === "user";
   return (
     <div style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start", marginBottom: 16, animation: "fadeUp 0.3s ease" }}>
@@ -124,6 +125,7 @@ export default function VinoAI({ user, supabase, isPremium = false }) {
   const [geoWelcome, setGeoWelcome] = useState("");
   const [geoCity, setGeoCity] = useState("");
   const [showIntel, setShowIntel] = useState(false);
+  const [wineAction, setWineAction] = useState(null); // { wineName, advice }
   const bottomRef = useRef();
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
@@ -257,6 +259,29 @@ export default function VinoAI({ user, supabase, isPremium = false }) {
       // Salva foto e ristorante in mappa in background
       if (imageToSend) saveMenuPhotoToMap(imageToSend, reply);
 
+      // Rileva se l'utente ha comprato un vino
+      const userTextLower = userText.toLowerCase();
+      const buyKeywords = ["ho comprato","comprato","ho preso","ho acquistato","ho trovato","ho portato a casa","ho preso una bottiglia","mi sono comprato"];
+      const hasBought = buyKeywords.some(k => userTextLower.includes(k));
+      if (hasBought) {
+        // Estrai nome vino con AI
+        try {
+          const extractRes = await fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              jsonMode: true,
+              messages: [{ role: "user", content: `Dal testo: "${userText}" — estrai SOLO il nome del vino menzionato. Rispondi SOLO con JSON: {"wine":"nome vino","year":"annata o null"}` }]
+            })
+          });
+          const extractData = await extractRes.json();
+          const extracted = JSON.parse(extractData.reply || "{}");
+          if (extracted.wine) {
+            setWineAction({ wineName: extracted.wine, year: extracted.year, advice: reply });
+          }
+        } catch {}
+      }
+
     } catch {
       setMessages(prev => [...prev, { role: "assistant", content: "Scusa, si è verificato un errore. Riprova." }]);
     }
@@ -361,6 +386,42 @@ export default function VinoAI({ user, supabase, isPremium = false }) {
               {loading && <div style={{ padding: "8px 0 0 46px" }}><Spinner /></div>}
               <div ref={bottomRef} />
             </div>
+
+            {/* Banner acquisto vino */}
+            {wineAction && (
+              <div style={{ background: `linear-gradient(135deg, ${MUTED}88, ${MUTED}44)`, border: `1px solid ${GOLD}44`, borderRadius: 14, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <div style={{ color: GOLD, fontSize: 14, fontWeight: 600 }}>🍾 {wineAction.wineName}{wineAction.year ? ` ${wineAction.year}` : ""}</div>
+                    <div style={{ color: CREAM + "88", fontSize: 12, marginTop: 2 }}>Cosa vuoi fare con questa bottiglia?</div>
+                  </div>
+                  <button onClick={() => setWineAction(null)} style={{ background: "none", border: "none", color: CREAM + "44", cursor: "pointer", fontSize: 16 }}>✕</button>
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={() => {
+                    setWineAction(null);
+                    sendMessage(`Voglio bere stasera il ${wineAction.wineName}${wineAction.year ? " " + wineAction.year : ""}. È il momento giusto? Con cosa lo abbino?`);
+                  }} style={{ flex: 1, padding: "10px", borderRadius: 10, background: `linear-gradient(135deg, ${BURGUNDY}, #9B2335)`, border: "none", color: CREAM, fontFamily: "'Cormorant Garamond', serif", fontSize: 14, cursor: "pointer" }}>
+                    🍷 Beviamolo stasera
+                  </button>
+                  <button onClick={async () => {
+                    setWineAction(null);
+                    // Aggiungi in cantina via Supabase
+                    const SURL = import.meta.env.VITE_SUPABASE_URL || "https://qnawdmghgwgvhzqzarrw.supabase.co";
+                    const SKEY = import.meta.env.VITE_SUPABASE_KEY;
+                    await fetch(`${SURL}/rest/v1/cellar`, {
+                      method: "POST",
+                      headers: { "apikey": SKEY, "Authorization": `Bearer ${SKEY}`, "Content-Type": "application/json" },
+                      body: JSON.stringify({ user_email: user?.email, name: wineAction.wineName, year: wineAction.year ? parseInt(wineAction.year) : null, qty: 1 })
+                    });
+                    sendMessage(`Ho messo in cantina il ${wineAction.wineName}${wineAction.year ? " " + wineAction.year : ""}. Quando sarà al meglio? Quanto tempo posso aspettare?`);
+                  }} style={{ flex: 1, padding: "10px", borderRadius: 10, background: `${GOLD}22`, border: `1px solid ${GOLD}44`, color: GOLD, fontFamily: "'Cormorant Garamond', serif", fontSize: 14, cursor: "pointer" }}>
+                    🏺 Metti in cantina
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
               {chatImage && (
                 <div style={{ position: "relative" }}>
