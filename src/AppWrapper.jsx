@@ -12,8 +12,6 @@ export default function AppWrapper() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isPremium, setIsPremium] = useState(false);
-  const [isGuest, setIsGuest] = useState(false);
-  const [guestQuestions, setGuestQuestions] = useState(0);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -24,18 +22,15 @@ export default function AppWrapper() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
-      if (session?.user) {
-        setIsGuest(false);
-        checkPremium(session.user.email);
-      } else {
-        setIsPremium(false);
-      }
+      if (session?.user) checkPremium(session.user.email);
+      else setIsPremium(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
   async function checkPremium(email) {
+    // Admin è sempre premium
     if (email === "lanzifederico09@gmail.com") {
       setIsPremium(true);
       setLoading(false);
@@ -61,24 +56,7 @@ export default function AppWrapper() {
     );
   }
 
-  if (!user && !isGuest) {
-    return (
-      <AuthScreen
-        onLogin={setUser}
-        onGuest={() => { setIsGuest(true); setGuestQuestions(0); }}
-      />
-    );
-  }
+  if (!user) return <AuthScreen onLogin={setUser} />;
 
-  return (
-    <VinoAI
-      user={user || { email: "ospite@sowinenot.app", user_metadata: { name: "Ospite" } }}
-      supabase={supabase}
-      isPremium={isPremium}
-      isGuest={isGuest}
-      guestQuestions={guestQuestions}
-      onGuestQuestion={() => setGuestQuestions(q => q + 1)}
-      onGuestSignup={() => setIsGuest(false)}
-    />
-  );
+  return <VinoAI user={user} supabase={supabase} isPremium={isPremium} />;
 }
