@@ -99,16 +99,18 @@ ${knowledgeContext ? knowledgeContext + "\n\nUsa queste informazioni esclusive p
   const stream = new ReadableStream({
     async start(controller) {
       const reader = response.body.getReader();
-      const decoder = new TextDecoder();
+      const decoder = new TextDecoder("utf-8", { fatal: false });
+      let buffer = "";
       try {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          const chunk = decoder.decode(value);
-          const lines = chunk.split("\n");
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop(); // tieni l'ultima riga incompleta
           for (const line of lines) {
             if (line.startsWith("data: ")) {
-              const data = line.slice(6);
+              const data = line.slice(6).trim();
               if (data === "[DONE]") continue;
               try {
                 const parsed = JSON.parse(data);
@@ -118,6 +120,15 @@ ${knowledgeContext ? knowledgeContext + "\n\nUsa queste informazioni esclusive p
               } catch {}
             }
           }
+        }
+        // Flush finale
+        if (buffer.startsWith("data: ")) {
+          try {
+            const parsed = JSON.parse(buffer.slice(6).trim());
+            if (parsed.type === "content_block_delta" && parsed.delta?.text) {
+              controller.enqueue(new TextEncoder().encode(parsed.delta.text));
+            }
+          } catch {}
         }
       } finally {
         controller.close();
