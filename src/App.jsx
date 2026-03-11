@@ -46,11 +46,11 @@ export default function VinoAI({ user, isPremium, isGuest, guestQuestions, onGue
   const [result, setResult] = useState(null);
   const [tab, setTab] = useState("analizza");
   const [showAdmin, setShowAdmin] = useState(false);
-  const [cellar, setCellar] = useState(CELLAR_INIT);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const fileInputRef = useRef(null);
 
   const isAdmin = user?.email === "lanzifederico09@gmail.com";
+  const guestLimitReached = isGuest && guestQuestions >= FREE_LIMIT;
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -63,7 +63,7 @@ export default function VinoAI({ user, isPremium, isGuest, guestQuestions, onGue
   };
 
   const analyze = async () => {
-    if (isGuest && guestQuestions >= FREE_LIMIT) {
+    if (guestLimitReached) {
       alert("Hai raggiunto il limite di prove gratuite. Registrati per continuare!");
       onGuestSignup();
       return;
@@ -100,6 +100,19 @@ export default function VinoAI({ user, isPremium, isGuest, guestQuestions, onGue
   };
 
   const renderTab = () => {
+    if (guestLimitReached && tab !== "analizza") {
+      return (
+        <div style={{ padding: 40, textAlign: "center", display: "flex", flexDirection: "column", gap: 20, alignItems: "center", justifyContent: "center", height: "60vh" }}>
+           <div style={{ fontSize: 50 }}>🔐</div>
+           <h2 style={{ fontFamily: "'Cormorant Garamond', serif", color: GOLD }}>Contenuto Esclusivo</h2>
+           <p style={{ color: `${CREAM}88`, fontSize: 14 }}>Registrati gratuitamente per sbloccare la mappa dei locali, il diario e la community.</p>
+           <button onClick={onGuestSignup} style={{ padding: "14px 24px", background: GOLD, border: "none", borderRadius: 12, color: DARK, fontWeight: "bold", cursor: "pointer" }}>
+             REGISTRATI ORA
+           </button>
+        </div>
+      );
+    }
+
     switch(tab) {
       case "community": return <CommunityTab user={user} isPremium={isPremium} />;
       case "cantina": return <CantinTab user={user} isPremium={isPremium} />;
@@ -120,7 +133,7 @@ export default function VinoAI({ user, isPremium, isGuest, guestQuestions, onGue
           <div style={{ fontSize: 24 }}>🍷</div>
           <div>
             <h1 style={{ margin: 0, fontSize: 18, fontFamily: "'Cormorant Garamond', serif", color: GOLD, letterSpacing: "0.1em" }}>SO WINE NOT</h1>
-            <div style={{ fontSize: 10, color: CREAM + "66", letterSpacing: "0.05em" }}>AI SOMMELIER</div>
+            <div style={{ fontSize: 10, color: `${CREAM}66`, letterSpacing: "0.05em" }}>AI SOMMELIER</div>
           </div>
         </div>
         
@@ -138,12 +151,11 @@ export default function VinoAI({ user, isPremium, isGuest, guestQuestions, onGue
       <div style={{ flex: 1, display: "flex", flexDirection: "column", maxWidth: 600, margin: "0 auto", width: "100%" }}>
         {tab === "analizza" ? (
           <div style={{ padding: "24px" }}>
-            {/* Analisi Content - Mostrato solo in tab analizza */}
             {!loading && !result && (
               <>
                 <div style={{ textAlign: "center", marginBottom: 32 }}>
                   <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, color: CREAM, marginBottom: 8 }}>Scova il Vero Valore</h2>
-                  <p style={{ color: CREAM + "88", fontSize: 14, fontStyle: "italic" }}>Inserisci un vino per scoprire se è un affare o un sovrapprezzo.</p>
+                  <p style={{ color: `${CREAM}88`, fontSize: 14, fontStyle: "italic" }}>Inserisci un vino per scoprire se è un affare o un sovrapprezzo.</p>
                 </div>
 
                 <div style={{ display: "flex", background: `${MUTED}33`, borderRadius: 12, padding: 4, marginBottom: 24, border: `1px solid ${GOLD}11` }}>
@@ -192,23 +204,23 @@ export default function VinoAI({ user, isPremium, isGuest, guestQuestions, onGue
                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
                      <h3 style={{ margin: 0, color: GOLD, fontSize: 22, fontFamily: "'Cormorant Garamond', serif", flex: 1 }}>{result.wine_name}</h3>
                      <div style={{ background: result.gem_score >= 70 ? BURGUNDY : MUTED, padding: "8px 12px", borderRadius: 12, textAlign: "center", minWidth: 60 }}>
-                       <div style={{ fontSize: 10, color: CREAM + "88" }}>SCORE</div>
+                       <div style={{ fontSize: 10, color: `${CREAM}88` }}>SCORE</div>
                        <div style={{ fontSize: 20, fontWeight: 800, color: result.gem_score >= 70 ? "#FFB5C2" : GOLD }}>{result.gem_score}</div>
                      </div>
                    </div>
 
                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
                      <div style={{ padding: 12, background: `${DARK}44`, borderRadius: 12, border: `1px solid ${GOLD}11` }}>
-                       <div style={{ fontSize: 10, color: CREAM + "66" }}>AL RISTORANTE</div>
+                       <div style={{ fontSize: 10, color: `${CREAM}66` }}>AL RISTORANTE</div>
                        <div style={{ fontSize: 18, color: CREAM, fontWeight: 700 }}>€{result.restaurant_price}</div>
                      </div>
                      <div style={{ padding: 12, background: `${DARK}44`, borderRadius: 12, border: `1px solid ${GOLD}11` }}>
-                       <div style={{ fontSize: 10, color: CREAM + "66" }}>VALORE RETAIL</div>
+                       <div style={{ fontSize: 10, color: `${CREAM}66` }}>VALORE RETAIL</div>
                        <div style={{ fontSize: 18, color: GOLD, fontWeight: 700 }}>€{result.retail_price}</div>
                      </div>
                    </div>
 
-                   <div style={{ fontSize: 14, color: CREAM + "CC", lineHeight: 1.6, padding: 15, background: `${GOLD}08`, borderRadius: 12, fontStyle: "italic" }}>
+                   <div style={{ fontSize: 14, color: `${CREAM}CC`, lineHeight: 1.6, padding: 15, background: `${GOLD}08`, borderRadius: 12, fontStyle: "italic" }}>
                      "{result.notes}"
                    </div>
                 </div>
@@ -231,7 +243,10 @@ export default function VinoAI({ user, isPremium, isGuest, guestQuestions, onGue
           { id: "community", icon: "🥂", label: "Feed" },
           { id: "cantina", icon: "📦", label: "Cantina" }
         ].map(t => (
-          <button key={t.id} onClick={() => { setTab(t.id); setResult(null); }} style={{ background: "none", border: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, cursor: "pointer", opacity: tab === t.id ? 1 : 0.4, transition: "all 0.2s" }}>
+          <button
+            key={t.id}
+            onClick={() => { if (!guestLimitReached || t.id === "analizza") { setTab(t.id); setResult(null); } }}
+            style={{ background: "none", border: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, cursor: guestLimitReached && t.id !== "analizza" ? "not-allowed" : "pointer", opacity: tab === t.id ? 1 : guestLimitReached && t.id !== "analizza" ? 0.15 : 0.4, transition: "all 0.2s" }}>
             <span style={{ fontSize: 20 }}>{t.icon}</span>
             <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", color: GOLD }}>{t.label}</span>
           </button>
