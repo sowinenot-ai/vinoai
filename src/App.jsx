@@ -45,12 +45,16 @@ async function askClaude(messages, onChunk) {
   });
   if (!res.ok) throw new Error("Errore server");
   const reader = res.body.getReader();
-  const decoder = new TextDecoder();
+  const decoder = new TextDecoder("utf-8", { fatal: false });
   let fullText = "";
   while (true) {
     const { done, value } = await reader.read();
-    if (done) break;
-    const chunk = decoder.decode(value);
+    if (done) {
+      const last = decoder.decode(new Uint8Array(0), { stream: false });
+      if (last) { fullText += last; if (onChunk) onChunk(fullText); }
+      break;
+    }
+    const chunk = decoder.decode(value, { stream: true });
     fullText += chunk;
     if (onChunk) onChunk(fullText);
   }
@@ -240,8 +244,15 @@ export default function VinoAI({ user, supabase, isPremium = false }) {
         }
         return { role: m.role, content: m.content };
       });
-      const reply = await askClaude(apiMsgs);
-      setMessages(prev => [...prev, { role: "assistant", content: reply }]);
+      // Aggiungi messaggio vuoto e aggiornalo in streaming
+      setMessages(prev => [...prev, { role: "assistant", content: "" }]);
+      const reply = await askClaude(apiMsgs, (partial) => {
+        setMessages(prev => {
+          const updated = [...prev];
+          updated[updated.length - 1] = { role: "assistant", content: partial };
+          return updated;
+        });
+      });
 
       // Salva foto e ristorante in mappa in background
       if (imageToSend) saveMenuPhotoToMap(imageToSend, reply);
@@ -495,8 +506,5 @@ function GemsTab({ analyzeGem, gemAnalyses, setGemAnalyses, freeLimit }) {
     </div>
   );
 }
-
-
-
 
 
