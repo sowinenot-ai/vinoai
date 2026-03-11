@@ -30,6 +30,12 @@ export default function AppWrapper() {
   }, []);
 
   async function checkPremium(email) {
+    // Admin è sempre premium
+    if (email === "lanzifederico09@gmail.com") {
+      setIsPremium(true);
+      setLoading(false);
+      return;
+    }
     try {
       const res = await fetch("/api/premium", {
         method: "POST",
