@@ -81,7 +81,7 @@ function Spinner({ text = "Il sommelier sta riflettendo..." }) {
   );
 }
 
-function ChatBubble({ msg }) {
+function ChatBubble({ msg, isPremium, isAdmin, onQuickAction }) {
   // (wineAction handled in parent)
   const isUser = msg.role === "user";
   return (
