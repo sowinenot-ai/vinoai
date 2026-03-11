@@ -19,12 +19,7 @@ async function sbFetch(path) {
 async function sbPost(body) {
   const r = await fetch(`${SUPABASE_URL}/rest/v1/restaurants`, {
     method: "POST",
-    headers: { 
-      "Content-Type": "application/json", 
-      apikey: SUPABASE_KEY, 
-      Authorization: `Bearer ${SUPABASE_KEY}`, 
-      Prefer: "return=representation" 
-    },
+    headers: { "Content-Type": "application/json", apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, Prefer: "return=representation" },
     body: JSON.stringify(body),
   });
   return r.json();
@@ -42,7 +37,6 @@ export default function MapTab({ user, isPremium }) {
   const [leafletLoaded, setLeafletLoaded] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfResult, setPdfResult] = useState(null);
-  const [selectedPdf, setSelectedPdf] = useState(null);
   const isAdmin = user?.email === "lanzifederico09@gmail.com";
 
   useEffect(() => {
@@ -99,10 +93,7 @@ export default function MapTab({ user, isPremium }) {
     data.forEach(r => {
       if (!r.lat || !r.lng) return;
       const marker = L.marker([r.lat, r.lng]).addTo(map);
-      marker.on("click", () => {
-        setSelected(r);
-        setSelectedPdf(null);
-      });
+      marker.on("click", () => setSelected(r));
       markersRef.current.push(marker);
     });
   }
@@ -146,81 +137,35 @@ export default function MapTab({ user, isPremium }) {
     setPdfLoading(false);
   }
 
-  const scoreColor = s => s >= 90 ? "#4ade80" : s >= 80 ? GOLD : "#f87171";
-  const scoreLabel = s => s >= 90 ? "ECCELLENTE" : s >= 80 ? "OTTIMA" : "BUONA";
-
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column", background: DARK, color: CREAM, position: "relative" }}>
       <div ref={mapRef} style={{ flex: 1, minHeight: 400 }} />
       
       {selected && (
         <div style={{ position: "absolute", bottom: 20, left: 20, right: 20, zIndex: 1000, background: DARK, border: `1px solid ${GOLD}44`, borderRadius: 16, padding: 20, maxHeight: "60%", overflowY: "auto", boxShadow: "0 10px 30px rgba(0,0,0,0.8)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
             <div>
-              <h3 style={{ margin: 0, color: GOLD, fontSize: 20, fontFamily: "'Cormorant Garamond', serif" }}>{selected.name}</h3>
+              <h3 style={{ margin: 0, color: GOLD, fontSize: 22, fontFamily: "'Cormorant Garamond', serif" }}>{selected.name}</h3>
               <p style={{ margin: "4px 0", fontSize: 13, color: CREAM + "88" }}>{selected.address}, {selected.city}</p>
             </div>
             <button onClick={() => setSelected(null)} style={{ background: "none", border: "none", color: CREAM, fontSize: 20, cursor: "pointer" }}>✕</button>
           </div>
 
-          <div style={{ marginTop: 15, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <div style={{ background: `${MUTED}44`, padding: 12, borderRadius: 10, border: `1px solid ${GOLD}11` }}>
-              <div style={{ fontSize: 10, color: GOLD, textTransform: "uppercase", letterSpacing: 1 }}>Qualità Carta</div>
-              <div style={{ fontSize: 14, fontWeight: 600, marginTop: 4 }}>{selected.card_quality?.toUpperCase() || "N/A"}</div>
+          {/* Info Badge */}
+          <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+            <div style={{ background: `${MUTED}44`, padding: "6px 12px", borderRadius: 20, border: `1px solid ${GOLD}22`, fontSize: 11, color: GOLD, fontWeight: 700 }}>
+              {selected.card_quality?.toUpperCase() || "QUALITÀ N/A"}
             </div>
-            <div style={{ background: `${MUTED}44`, padding: 12, borderRadius: 10, border: `1px solid ${GOLD}11` }}>
-              <div style={{ fontSize: 10, color: GOLD, textTransform: "uppercase", letterSpacing: 1 }}>Sommelier</div>
-              <div style={{ fontSize: 14, fontWeight: 600, marginTop: 4 }}>{selected.has_sommelier ? "SÌ" : "NO"}</div>
-            </div>
-          </div>
-
-          <div style={{ marginTop: 20 }}>
-            <div style={{ fontSize: 11, color: GOLD, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>Carte Vini Analizzate</div>
-            {selected.pdf_analyses?.length > 0 ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {selected.pdf_analyses.map((pdf) => (
-                  <div key={pdf.id} style={{ background: `${MUTED}22`, borderRadius: 12, border: `1px solid ${GOLD}22`, overflow: "hidden" }}>
-                    <div style={{ padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div>
-                        <div style={{ fontSize: 14, fontWeight: 600 }}>📋 {pdf.section_name || "Carta completa"}</div>
-                        <div style={{ color: CREAM + "44", fontSize: 11, marginTop: 2 }}>{new Date(pdf.created_at).toLocaleDateString("it-IT")}</div>
-                      </div>
-                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                        {pdf.gem_score && (
-                          <span style={{ color: scoreColor(pdf.gem_score), fontSize: 13, fontWeight: 700 }}>
-                            {scoreLabel(pdf.gem_score)}
-                          </span>
-                        )}
-                        <button onClick={() => setSelectedPdf(selectedPdf?.id === pdf.id ? null : pdf)}
-                          style={{ padding: "6px 14px", background: selectedPdf?.id === pdf.id ? `linear-gradient(135deg, ${BURGUNDY}, #9B2335)` : `${MUTED}55`, border: `1px solid ${GOLD}33`, borderRadius: 20, color: CREAM, fontSize: 12, cursor: "pointer" }}>
-                          {selectedPdf?.id === pdf.id ? "▲ Chiudi" : "▼ Vedi carta"}
-                        </button>
-                      </div>
-                    </div>
-                    {selectedPdf?.id === pdf.id && (
-                      <div style={{ marginTop: 12, fontSize: 13, color: CREAM + "CC", lineHeight: 1.9, whiteSpace: "pre-wrap", borderTop: `1px solid ${GOLD}11`, paddingTop: 12, padding: "16px" }}>
-                        {pdf.analysis}
-                      </div>
-                    )}
-                  </div>
-                ))}
+            {selected.has_sommelier && (
+              <div style={{ background: `${BURGUNDY}33`, padding: "6px 12px", borderRadius: 20, border: `1px solid ${BURGUNDY}66`, fontSize: 11, color: "#FFB5C2", fontWeight: 700 }}>
+                🍷 SOMMELIER IN SALA
               </div>
-            ) : (
-              <div style={{ padding: 15, textAlign: "center", color: CREAM + "44", fontSize: 13, background: `${MUTED}22`, borderRadius: 12 }}>Nessuna carta caricata.</div>
             )}
           </div>
 
-          {isAdmin && (
-            <div style={{ marginTop: 20, borderTop: `1px solid ${GOLD}22`, paddingTop: 15 }}>
-              <div style={{ fontSize: 11, color: GOLD, marginBottom: 8, fontWeight: "bold" }}>ADMIN: CARICA CARTA VINI (PDF)</div>
-              <input type="file" accept="application/pdf" onChange={handleFileUpload} disabled={pdfLoading} />
-              {pdfLoading && <div style={{ fontSize: 12, marginTop: 5 }}>Analisi AI in corso...</div>}
-              {pdfResult && <div style={{ fontSize: 12, marginTop: 5, color: GOLD }}>{pdfResult}</div>}
-            </div>
-          )}
-          
+          {/* Sezione Premium Check */}
           {!isPremium && !isAdmin && (
-            <div style={{ marginTop: 20, padding: 15, background: `linear-gradient(to bottom, ${GOLD}11, transparent)`, borderRadius: 12, border: `1px solid ${GOLD}22`, textAlign: "center" }}>
+            <div style={{ marginBottom: 20, padding: 15, background: `linear-gradient(to bottom, ${GOLD}11, transparent)`, borderRadius: 12, border: `1px solid ${GOLD}22`, textAlign: "center" }}>
               <div style={{ color: GOLD, fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Sblocca le Perle dell'AI</div>
               <div style={{ color: CREAM + "88", fontSize: 12, marginBottom: 12 }}>Ottieni l'analisi completa dei prezzi e trova le gemme nascoste in questa carta.</div>
               <button style={{ background: `linear-gradient(135deg, ${GOLD}, #A07830)`, border: "none", color: DARK, fontSize: 12, fontWeight: 700, padding: "8px 16px", borderRadius: 20, cursor: "pointer" }}>
@@ -228,26 +173,60 @@ export default function MapTab({ user, isPremium }) {
               </button>
             </div>
           )}
+
+          {/* Carte dei vini */}
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 11, color: GOLD, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 12, fontWeight: 700 }}>📄 Carte Analizzate</div>
+            {(!selected.pdf_analyses || selected.pdf_analyses.length === 0) ? (
+              <div style={{ color: CREAM + "33", fontSize: 13, fontStyle: "italic", padding: "10px 0" }}>Nessuna carta caricata per questo locale</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {selected.pdf_analyses.map(pdf => (
+                  <div key={pdf.id} style={{ padding: "12px 16px", background: `${MUTED}22`, borderRadius: 12, border: `1px solid ${GOLD}11` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div>
+                        <div style={{ color: CREAM, fontSize: 14, fontWeight: 600 }}>📋 {pdf.section_name || "Carta completa"}</div>
+                        <div style={{ color: CREAM + "44", fontSize: 11, marginTop: 2 }}>{new Date(pdf.created_at).toLocaleDateString("it-IT")}</div>
+                      </div>
+                      {pdf.gem_score && (
+                        <div style={{ color: GOLD, fontSize: 12, fontWeight: 800 }}>AI SCORE: {pdf.gem_score}</div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Admin Upload */}
+          {isAdmin && (
+            <div style={{ borderTop: `1px solid ${GOLD}22`, paddingTop: 15, marginTop: 10 }}>
+              <div style={{ fontSize: 11, color: GOLD, marginBottom: 10, fontWeight: "bold" }}>ADMIN: AGGIUNGI CARTA VINI (PDF)</div>
+              <input type="file" accept="application/pdf" onChange={handleFileUpload} disabled={pdfLoading} style={{ fontSize: 12 }} />
+              {pdfLoading && <div style={{ fontSize: 12, marginTop: 8, color: GOLD }}>Analisi AI in corso...</div>}
+              {pdfResult && <div style={{ fontSize: 12, marginTop: 8, color: GOLD, fontWeight: "bold" }}>{pdfResult}</div>}
+            </div>
+          )}
         </div>
       )}
 
       {isAdmin && !selected && (
-        <button onClick={() => setShowForm(!showForm)} style={{ position: "absolute", top: 20, right: 20, zIndex: 1000, background: GOLD, color: DARK, border: "none", borderRadius: 30, padding: "10px 20px", fontWeight: "bold", cursor: "pointer" }}>
+        <button onClick={() => setShowForm(!showForm)} style={{ position: "absolute", top: 20, right: 20, zIndex: 1000, background: GOLD, color: DARK, border: "none", borderRadius: 30, padding: "10px 20px", fontWeight: "bold", cursor: "pointer", boxShadow: "0 4px 15px rgba(0,0,0,0.5)" }}>
           {showForm ? "Chiudi" : "+ Aggiungi Locale"}
         </button>
       )}
 
       {showForm && (
-        <div style={{ position: "absolute", top: 70, right: 20, zIndex: 1000, background: DARK, border: `1px solid ${GOLD}44`, borderRadius: 16, padding: 20, width: 300, display: "flex", flexDirection: "column", gap: 10 }}>
-          <input placeholder="Nome" style={{ padding: 8, background: MUTED, border: "none", color: CREAM }} value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
-          <input placeholder="Città" style={{ padding: 8, background: MUTED, border: "none", color: CREAM }} value={form.city} onChange={e => setForm({...form, city: e.target.value})} />
-          <input placeholder="Indirizzo" style={{ padding: 8, background: MUTED, border: "none", color: CREAM }} value={form.address} onChange={e => setForm({...form, address: e.target.value})} />
-          <div style={{ display: "flex", gap: 5 }}>
-            <input placeholder="Lat" style={{ padding: 8, background: MUTED, border: "none", color: CREAM, flex: 1 }} value={form.lat} onChange={e => setForm({...form, lat: e.target.value})} />
-            <input placeholder="Lng" style={{ padding: 8, background: MUTED, border: "none", color: CREAM, flex: 1 }} value={form.lng} onChange={e => setForm({...form, lng: e.target.value})} />
+        <div style={{ position: "absolute", top: 75, right: 20, zIndex: 1000, background: DARK, border: `1px solid ${GOLD}44`, borderRadius: 16, padding: 20, width: 300, display: "flex", flexDirection: "column", gap: 12, boxShadow: "0 10px 30px rgba(0,0,0,0.8)" }}>
+          <div style={{ fontSize: 12, color: GOLD, fontWeight: "bold" }}>NUOVO PUNTO MAPPA</div>
+          <input placeholder="Nome Locale" style={{ padding: 10, background: MUTED + "44", border: `1px solid ${GOLD}22`, color: CREAM, borderRadius: 8 }} value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
+          <input placeholder="Città" style={{ padding: 10, background: MUTED + "44", border: `1px solid ${GOLD}22`, color: CREAM, borderRadius: 8 }} value={form.city} onChange={e => setForm({...form, city: e.target.value})} />
+          <div style={{ display: "flex", gap: 8 }}>
+            <input placeholder="Lat" style={{ padding: 10, background: MUTED + "44", border: `1px solid ${GOLD}22`, color: CREAM, borderRadius: 8, flex: 1 }} value={form.lat} onChange={e => setForm({...form, lat: e.target.value})} />
+            <input placeholder="Lng" style={{ padding: 10, background: MUTED + "44", border: `1px solid ${GOLD}22`, color: CREAM, borderRadius: 8, flex: 1 }} value={form.lng} onChange={e => setForm({...form, lng: e.target.value})} />
           </div>
-          <button onClick={handleAdd} disabled={saving} style={{ background: GOLD, color: DARK, border: "none", padding: 10, fontWeight: "bold", borderRadius: 8 }}>
-            {saving ? "Salvataggio..." : "Salva"}
+          <button onClick={handleAdd} disabled={saving} style={{ background: GOLD, color: DARK, border: "none", padding: 12, fontWeight: "bold", borderRadius: 8, marginTop: 5, cursor: "pointer" }}>
+            {saving ? "SALVATAGGIO..." : "SALVA LOCALE"}
           </button>
         </div>
       )}
