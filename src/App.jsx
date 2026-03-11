@@ -5,6 +5,7 @@ import AdminPanel from "./AdminPanel";
 import PdfTab from "./PdfTab";
 import DiaryTab from "./DiaryTab";
 import MapTab from "./MapTab";
+import ExperiencesTab from "./ExperiencesTab";
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -304,6 +305,7 @@ export default function VinoAI({ user, supabase, isPremium = false }) {
           <TabButton active={tab === "gems"} onClick={() => setTab("gems")} icon="💎" badge={remaining > 0 ? remaining : null}>Perle Nascoste</TabButton>
           <TabButton active={tab === "community"} onClick={() => setTab("community")} icon="🌍">Community</TabButton>
           <TabButton active={tab === "map"} onClick={() => setTab("map")} icon="🗺️">Mappa</TabButton>
+          <TabButton active={tab === "experiences"} onClick={() => setTab("experiences")} icon="📖">Esperienze</TabButton>
           <TabButton active={tab === "pdf"} onClick={() => setTab("pdf")} icon="📄">Analisi PDF</TabButton>
           <TabButton active={tab === "diary"} onClick={() => setTab("diary")} icon="📔">Il Mio Diario</TabButton>
         </div>
@@ -405,6 +407,7 @@ export default function VinoAI({ user, supabase, isPremium = false }) {
         {tab === "gems" && <GemsTab analyzeGem={analyzeGem} gemAnalyses={gemAnalyses} setGemAnalyses={setGemAnalyses} freeLimit={FREE_LIMIT} />}
         {tab === "community" && <CommunityTab askClaude={askClaude} />}
         {tab === "map" && <MapTab user={user} isPremium={isPremium} />}
+        {tab === "experiences" && <ExperiencesTab user={user} />}
         {tab === "pdf" && <PdfTab user={user} isPremium={isPremium} />}
         {tab === "diary" && <DiaryTab user={user} />}
         {showAdmin && <AdminPanel user={user} onClose={() => setShowAdmin(false)} />}
