@@ -198,7 +198,7 @@ export default function MapTab({ user, isPremium }) {
                       </div>
                     </div>
                     {selectedPdf?.id === pdf.id && (
-                      <div style={{ marginTop: 12, fontSize: 13, color: CREAM + "CC", lineHeight: 1.9, whiteSpace: "pre-wrap", borderTop: `1px solid ${GOLD}11`, paddingTop: 12, padding: "0 16px 16px 16px" }}>
+                      <div style={{ marginTop: 12, fontSize: 13, color: CREAM + "CC", lineHeight: 1.9, whiteSpace: "pre-wrap", borderTop: `1px solid ${GOLD}11`, paddingTop: 12, padding: "16px" }}>
                         {pdf.analysis}
                       </div>
                     )}
