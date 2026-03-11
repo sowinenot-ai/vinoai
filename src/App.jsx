@@ -1,9 +1,15 @@
 import { useState, useRef, useEffect } from "react";
+import { createClient } from "@supabase/supabase-js";
 import CommunityTab from "./CommunityTab";
 import AdminPanel from "./AdminPanel";
 import PdfTab from "./PdfTab";
 import DiaryTab from "./DiaryTab";
 import MapTab from "./MapTab";
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_KEY
+);
 
 const BURGUNDY = "#6B1A2A";
 const GOLD = "#C9A84C";
@@ -132,9 +138,69 @@ export default function VinoAI({ user, supabase, isPremium = false }) {
     reader.onload = (ev) => {
       const base64 = ev.target.result.split(",")[1];
       const preview = ev.target.result;
-      setChatImage({ base64, preview, mediaType: file.type });
+      setChatImage({ base64, preview, mediaType: file.type, file });
     };
     reader.readAsDataURL(file);
+  }
+
+  async function saveMenuPhotoToMap(imageToSend, analysisText) {
+    try {
+      // 1. Upload foto su Supabase Storage
+      const fileName = `menu-${Date.now()}.jpg`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("menu-photos")
+        .upload(fileName, imageToSend.file, { contentType: imageToSend.mediaType, upsert: true });
+      if (uploadError) { console.error("Upload error:", uploadError); return; }
+
+      const { data: urlData } = supabase.storage.from("menu-photos").getPublicUrl(fileName);
+      const photoUrl = urlData.publicUrl;
+
+      // 2. Chiedi all'AI di estrarre nome ristorante e città dalla foto
+      const extractRes = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [{
+            role: "user",
+            content: [
+              { type: "image", source: { type: "base64", media_type: imageToSend.mediaType, data: imageToSend.base64 } },
+              { type: "text", text: "Guarda questa carta dei vini. Rispondi SOLO con un JSON così: {\"name\": \"nome ristorante o hotel\", \"city\": \"città\", \"found\": true}. Se non riesci a identificare il ristorante: {\"found\": false}" }
+            ]
+          }],
+          jsonMode: true
+        }),
+      });
+      const extractData = await extractRes.json();
+      let info = null;
+      try { info = JSON.parse(extractData.reply || extractData.result || "{}"); } catch {}
+
+      if (!info?.found || !info?.name) return;
+
+      // 3. Geocodifica città → lat/lng
+      let lat = null, lng = null;
+      try {
+        const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(info.city || info.name)}&format=json&limit=1`);
+        const geoData = await geoRes.json();
+        if (geoData[0]) { lat = parseFloat(geoData[0].lat); lng = parseFloat(geoData[0].lon); }
+      } catch {}
+
+      // 4. Salva in map_restaurants
+      await supabase.from("map_restaurants").upsert({
+        name: info.name,
+        city: info.city || "",
+        address: info.city || "",
+        lat,
+        lng,
+        wine_list_notes: analysisText?.slice(0, 500) || "",
+        photo_url: photoUrl,
+        reported_by: user?.email || "anonymous",
+        gem_score: 50,
+      }, { onConflict: "name" });
+
+      console.log("✅ Ristorante salvato in mappa:", info.name);
+    } catch (e) {
+      console.error("Errore salvataggio mappa:", e);
+    }
   }
 
   async function sendMessage(text) {
@@ -146,14 +212,13 @@ export default function VinoAI({ user, supabase, isPremium = false }) {
 
     const userMsg = {
       role: "user",
-      content: userText || "Analizza questa carta dei vini",
+      content: userText || "Analizza questa carta dei vini e dimmi le perle nascoste",
       image: imageToSend ? imageToSend.preview : null,
     };
     const newMsgs = [...messages, userMsg];
     setMessages(newMsgs);
     setLoading(true);
     try {
-      // Build API messages - include image if present
       const apiMsgs = newMsgs.map(m => {
         if (m.image && imageToSend) {
           return {
@@ -168,6 +233,10 @@ export default function VinoAI({ user, supabase, isPremium = false }) {
       });
       const reply = await askClaude(apiMsgs);
       setMessages(prev => [...prev, { role: "assistant", content: reply }]);
+
+      // Salva foto e ristorante in mappa in background
+      if (imageToSend) saveMenuPhotoToMap(imageToSend, reply);
+
     } catch {
       setMessages(prev => [...prev, { role: "assistant", content: "Scusa, si è verificato un errore. Riprova." }]);
     }
