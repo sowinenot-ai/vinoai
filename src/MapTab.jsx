@@ -56,8 +56,9 @@ export default function MapTab({ user, isPremium }) {
     if (!leafletLoaded || !mapRef.current || leafletMap.current) return;
     const L = window.L;
     const map = L.map(mapRef.current, { center: [45, 12], zoom: 5 });
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-      subdomains: "abcd", maxZoom: 19,
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "© OpenStreetMap"
     }).addTo(map);
     leafletMap.current = map;
     renderMarkers(map, restaurants);
@@ -68,8 +69,20 @@ export default function MapTab({ user, isPremium }) {
   }, [restaurants]);
 
   async function loadRestaurants() {
-    const data = await sbFetch("restaurants?select=*,gems(gem_score,wine_name,classification)&order=created_at.desc");
-    if (Array.isArray(data)) setRestaurants(data);
+    // Carica da entrambe le tabelle
+    const [data1, data2] = await Promise.all([
+      sbFetch("restaurants?select=*,gems(gem_score,wine_name,classification)&order=created_at.desc"),
+      sbFetch("map_restaurants?select=*&order=created_at.desc"),
+    ]);
+    const r1 = Array.isArray(data1) ? data1 : [];
+    const r2 = Array.isArray(data2) ? data2.map(r => ({
+      ...r,
+      gems: r.gem_score ? [{ gem_score: r.gem_score, wine_name: r.wine_list_notes?.slice(0, 50) }] : []
+    })) : [];
+    // Unisci evitando duplicati per nome
+    const names = new Set(r1.map(r => r.name?.toLowerCase()));
+    const merged = [...r1, ...r2.filter(r => !names.has(r.name?.toLowerCase()))];
+    setRestaurants(merged);
   }
 
   function scoreColor(score) {
@@ -90,8 +103,8 @@ export default function MapTab({ user, isPremium }) {
       const topScore = gems.length ? Math.max(...gems.map(g => g.gem_score || 0)) : null;
       const color = scoreColor(topScore);
       const icon = L.divIcon({
-        html: `<div style="width:28px;height:28px;border-radius:50%;background:${DARK};border:2.5px solid ${color};display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 2px 10px rgba(0,0,0,0.6);cursor:pointer;">🍷</div>`,
-        className: "", iconSize: [28, 28], iconAnchor: [14, 14],
+        html: `<div style="width:32px;height:32px;border-radius:50%;background:${color};border:3px solid white;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 3px 12px rgba(0,0,0,0.4);cursor:pointer;">🍷</div>`,
+        className: "", iconSize: [32, 32], iconAnchor: [16, 16],
       });
       const m = L.marker([r.lat, r.lng], { icon }).addTo(map);
       m.on("click", () => setSelected(r));
