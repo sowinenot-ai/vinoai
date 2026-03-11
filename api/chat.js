@@ -38,7 +38,7 @@ export default async function handler(req) {
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_KEY;
     const stopWords = new Set(["sono","ero","ho","ha","il","la","lo","le","gli","un","una","di","da","in","su","per","con","che","non","mi","si","al","del","della","dei","a","e","ma","se","o","qui","sto","stai","cosa","come","dove","quando","voglio","posso","puoi","devo"]);
-    const keywords = lastText.toLowerCase().split(/\s+/).map(w => w.replace(/[^a-z]/g,""")).filter(w => w.length > 3 && !stopWords.has(w)).slice(0, 4);
+    const keywords = lastText.toLowerCase().split(/\s+/).map(w => w.replace(/[^a-z]/g,"")).filter(w => w.length > 3 && !stopWords.has(w)).slice(0, 4);
     if (keywords.length > 0) {
       const kbResults = await Promise.all(keywords.map(word =>
         fetch(`${supabaseUrl}/rest/v1/knowledge?select=title,content,category,source&or=(content.ilike.*${encodeURIComponent(word)}*,title.ilike.*${encodeURIComponent(word)}*)&limit=2`,
