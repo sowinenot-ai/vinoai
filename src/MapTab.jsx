@@ -19,7 +19,12 @@ async function sbFetch(path) {
 async function sbPost(body) {
   const r = await fetch(`${SUPABASE_URL}/rest/v1/restaurants`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, Prefer: "return=representation" },
+    headers: { 
+      "Content-Type": "application/json", 
+      apikey: SUPABASE_KEY, 
+      Authorization: `Bearer ${SUPABASE_KEY}`, 
+      Prefer: "return=representation" 
+    },
     body: JSON.stringify(body),
   });
   return r.json();
