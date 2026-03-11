@@ -37,6 +37,7 @@ export default function MapTab({ user, isPremium }) {
   const [leafletLoaded, setLeafletLoaded] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfResult, setPdfResult] = useState(null);
+  const [selectedPdf, setSelectedPdf] = useState(null);
   const isAdmin = user?.email === "lanzifederico09@gmail.com";
 
   useEffect(() => {
@@ -69,18 +70,13 @@ export default function MapTab({ user, isPremium }) {
   }, [restaurants]);
 
   async function loadRestaurants() {
-    // Carica da entrambe le tabelle
     const [data1, data2] = await Promise.all([
-      sbFetch("restaurants?select=*,gems(gem_score,wine_name,classification,notes,markup_factor,restaurant_price,retail_price)&order=created_at.desc"),
+      sbFetch("restaurants?select=*,gems(gem_score,wine_name,classification,notes,markup_factor,restaurant_price,retail_price),pdf_analyses(*)&order=created_at.desc"),
       sbFetch("map_restaurants?select=*&order=created_at.desc"),
     ]);
     const r1 = Array.isArray(data1) ? data1 : [];
-    const r2 = Array.isArray(data2) ? data2.map(r => ({ 
-      ...r, 
-      gems: r.gem_score ? [{ gem_score: r.gem_score, wine_name: r.wine_list_notes?.slice(0, 50) }] : [] 
-    })) : [];
+    const r2 = Array.isArray(data2) ? data2 : [];
     
-    // Unisci evitando duplicati per nome
     const names = new Set();
     const merged = [...r1, ...r2].filter(r => {
       if (names.has(r.name)) return false;
@@ -98,7 +94,10 @@ export default function MapTab({ user, isPremium }) {
     data.forEach(r => {
       if (!r.lat || !r.lng) return;
       const marker = L.marker([r.lat, r.lng]).addTo(map);
-      marker.on("click", () => setSelected(r));
+      marker.on("click", () => {
+        setSelected(r);
+        setSelectedPdf(null);
+      });
       markersRef.current.push(marker);
     });
   }
@@ -150,7 +149,7 @@ export default function MapTab({ user, isPremium }) {
       <div ref={mapRef} style={{ flex: 1, minHeight: 400 }} />
       
       {selected && (
-        <div style={{ position: "absolute", bottom: 20, left: 20, right: 20, zIndex: 1000, background: DARK, border: `1px solid ${GOLD}44`, borderRadius: 16, padding: 20, maxHeight: "50%", overflowY: "auto", boxShadow: "0 10px 30px rgba(0,0,0,0.8)" }}>
+        <div style={{ position: "absolute", bottom: 20, left: 20, right: 20, zIndex: 1000, background: DARK, border: `1px solid ${GOLD}44`, borderRadius: 16, padding: 20, maxHeight: "60%", overflowY: "auto", boxShadow: "0 10px 30px rgba(0,0,0,0.8)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <div>
               <h3 style={{ margin: 0, color: GOLD, fontSize: 20, fontFamily: "'Cormorant Garamond', serif" }}>{selected.name}</h3>
@@ -170,11 +169,41 @@ export default function MapTab({ user, isPremium }) {
             </div>
           </div>
 
-          {selected.notes && (
-            <div style={{ marginTop: 15, padding: 12, background: `${GOLD}08`, borderRadius: 10, fontSize: 13, fontStyle: "italic", color: CREAM + "cc", borderLeft: `3px solid ${GOLD}` }}>
-              "{selected.notes}"
-            </div>
-          )}
+          <div style={{ marginTop: 20 }}>
+            <div style={{ fontSize: 11, color: GOLD, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>Carte Vini Analizzate</div>
+            {selected.pdf_analyses?.length > 0 ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {selected.pdf_analyses.map((pdf) => (
+                  <div key={pdf.id} style={{ background: `${MUTED}22`, borderRadius: 12, border: `1px solid ${GOLD}22`, overflow: "hidden" }}>
+                    <div style={{ padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 600 }}>📋 {pdf.section_name || "Carta completa"}</div>
+                        <div style={{ color: CREAM + "44", fontSize: 11, marginTop: 2 }}>{new Date(pdf.created_at).toLocaleDateString("it-IT")}</div>
+                      </div>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        {pdf.gem_score && (
+                          <span style={{ color: scoreColor(pdf.gem_score), fontSize: 13, fontWeight: 700 }}>
+                            {scoreLabel(pdf.gem_score)}
+                          </span>
+                        )}
+                        <button onClick={() => setSelectedPdf(selectedPdf?.id === pdf.id ? null : pdf)}
+                          style={{ padding: "6px 14px", background: selectedPdf?.id === pdf.id ? `linear-gradient(135deg, ${BURGUNDY}, #9B2335)` : `${MUTED}55`, border: `1px solid ${GOLD}33`, borderRadius: 20, color: CREAM, fontSize: 12, cursor: "pointer" }}>
+                          {selectedPdf?.id === pdf.id ? "▲ Chiudi" : "▼ Vedi carta"}
+                        </button>
+                      </div>
+                    </div>
+                    {selectedPdf?.id === pdf.id && (
+                      <div style={{ marginTop: 12, fontSize: 13, color: CREAM + "CC", lineHeight: 1.9, whiteSpace: "pre-wrap", borderTop: `1px solid ${GOLD}11`, paddingTop: 12, padding: "0 16px 16px 16px" }}>
+                        {pdf.analysis}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ padding: 15, textAlign: "center", color: CREAM + "44", fontSize: 13, background: `${MUTED}22`, borderRadius: 12 }}>Nessuna carta caricata.</div>
+            )}
+          </div>
 
           {isAdmin && (
             <div style={{ marginTop: 20, borderTop: `1px solid ${GOLD}22`, paddingTop: 15 }}>
