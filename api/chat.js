@@ -37,16 +37,18 @@ export default async function handler(req) {
       : lastMsg?.content?.find(b => b.type === "text")?.text || "";
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_KEY;
-    const words = lastText.split(" ").slice(0, 5).join(" ");
-    if (words.length > 3) {
-      const kbResponse = await fetch(
-        `${supabaseUrl}/rest/v1/knowledge?select=title,content,category,source&or=(content.ilike.*${encodeURIComponent(words)}*,title.ilike.*${encodeURIComponent(words)}*)&limit=3`,
-        { headers: { "apikey": supabaseKey, "Authorization": `Bearer ${supabaseKey}` } }
-      );
-      const kbData = await kbResponse.json();
-      if (kbData && kbData.length > 0) {
-        knowledgeContext = "\n\nCONOSCENZA ESCLUSIVA DAL DATABASE SOWINENOT:\n" +
-          kbData.map(k => `[${k.category?.toUpperCase()} - ${k.source}]\n${k.title}\n${k.content}`).join("\n\n---\n\n");
+    const stopWords = new Set(["sono","ero","ho","ha","il","la","lo","le","gli","un","una","di","da","in","su","per","con","che","non","mi","si","al","del","della","dei","a","e","ma","se","o","qui","sto","stai","cosa","come","dove","quando","voglio","posso","puoi","devo"]);
+    const keywords = lastText.toLowerCase().split(/\s+/).map(w => w.replace(/[^a-z]/g,""")).filter(w => w.length > 3 && !stopWords.has(w)).slice(0, 4);
+    if (keywords.length > 0) {
+      const kbResults = await Promise.all(keywords.map(word =>
+        fetch(`${supabaseUrl}/rest/v1/knowledge?select=title,content,category,source&or=(content.ilike.*${encodeURIComponent(word)}*,title.ilike.*${encodeURIComponent(word)}*)&limit=2`,
+          { headers: { "apikey": supabaseKey, "Authorization": `Bearer ${supabaseKey}` } }
+        ).then(r => r.json()).catch(() => [])
+      ));
+      const seen = new Set();
+      const kbData = kbResults.flat().filter(k => { if (!k?.title || seen.has(k.title)) return false; seen.add(k.title); return true; }).slice(0, 4);
+      if (kbData.length > 0) {
+        knowledgeContext = "\n\nCONOSCENZA DAL DATABASE SOWINENOT:\n" + kbData.map(k => `[${k.category?.toUpperCase()} - ${k.source}]\n${k.title}\n${k.content?.slice(0,600)}`).join("\n\n---\n\n");
       }
     }
   } catch (e) {}
@@ -71,7 +73,11 @@ Per domande su singoli vini, struttura così:
 💰 QUALITÀ-PREZZO — valutazione
 🧠 LO SAPEVI? — curiosità interessante
 
-Usa sempre le emoji. Rispondi nella lingua dell'utente. NO asterischi o markdown. Scrivi in modo fluido e appassionato.
+Usa sempre le emoji. Rispondi nella lingua dell'utente. NO asterischi o markdown. Scrivi in modo fluido e appassionato come un grande sommelier.
+
+Quando l'utente dice che e in un ristorante specifico, dai subito consigli pratici e usa le info del database su quel ristorante se disponibili. Consiglia vini specifici e avvisa su quelli overpriced.
+
+Quando descrive cosa sta mangiando, abbina con la precisione di un sommelier 3 stelle Michelin.
 ${knowledgeContext ? knowledgeContext + "\n\nUsa queste informazioni esclusive per arricchire le tue risposte quando pertinenti." : ""}`;
 
   const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -83,7 +89,7 @@ ${knowledgeContext ? knowledgeContext + "\n\nUsa queste informazioni esclusive p
     },
     body: JSON.stringify({
       model: "claude-sonnet-4-6",
-      max_tokens: 1500,
+      max_tokens: 2500,
       stream: true,
       system: systemPrompt,
       messages,
