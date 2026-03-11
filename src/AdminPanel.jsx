@@ -35,6 +35,22 @@ export default function AdminPanel({ user, onClose }) {
   const [news, setNews] = useState({ title: "", content: "", source: "", date: "" });
   const [newsSaving, setNewsSaving] = useState(false);
   const [newsSaved, setNewsSaved] = useState(false);
+  const [book, setBook] = useState({ title: "", author: "", file: null });
+  const [bookLoading, setBookLoading] = useState(false);
+  const [bookStatus, setBookStatus] = useState("");
+  const [bookRef, setBookRef] = useState(null);
+  const [bookFile, setBookFile] = useState(null);
+  const [bookTitle, setBookTitle] = useState("");
+  const [bookAuthor, setBookAuthor] = useState("");
+  const [bookLoading, setBookLoading] = useState(false);
+  const [bookStatus, setBookStatus] = useState("");
+  const [bookDone, setBookDone] = useState(false);
+  const [bookFile, setBookFile] = useState(null);
+  const [bookTitle, setBookTitle] = useState("");
+  const [bookAuthor, setBookAuthor] = useState("");
+  const [bookLoading, setBookLoading] = useState(false);
+  const [bookStatus, setBookStatus] = useState("");
+  const [bookDone, setBookDone] = useState(false);
 
   useEffect(() => { loadItems(); }, []);
 
@@ -76,6 +92,150 @@ export default function AdminPanel({ user, onClose }) {
     setTimeout(() => setNewsSaved(false), 2000);
     await loadItems();
     setNewsSaving(false);
+  }
+
+  async function saveBook() {
+    if (!bookFile || !bookTitle) return;
+    setBookLoading(true);
+    setBookDone(false);
+    setBookStatus("📤 Caricamento PDF...");
+    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://qnawdmghgwgvhzqzarrw.supabase.co";
+    const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY;
+    try {
+      // Upload PDF su Supabase Storage
+      const fileName = `${Date.now()}-${bookFile.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+      const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/pdf-menus/${fileName}`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${SUPABASE_KEY}`, "apikey": SUPABASE_KEY, "Content-Type": "application/pdf", "x-upsert": "true" },
+        body: bookFile,
+      });
+      if (!uploadRes.ok) throw new Error("Upload fallito");
+      const pdfUrl = `${SUPABASE_URL}/storage/v1/object/public/pdf-menus/${fileName}`;
+      setBookStatus("🧠 L'AI sta leggendo il libro...");
+      // Analizza con Claude via api/pdf
+      const analysisRes = await fetch("/api/pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pdfUrl, restaurantName: bookTitle, sectionName: "libro", isBook: true, bookAuthor }),
+      });
+      const analysisData = await analysisRes.json();
+      if (!analysisData.result) throw new Error("Analisi fallita");
+      setBookStatus("💾 Salvo nel knowledge base...");
+      // Salva nel KB
+      await callKnowledge("save", {
+        title: `📚 ${bookTitle}${bookAuthor ? " — " + bookAuthor : ""}`,
+        content: analysisData.result,
+        category: "libro_vino",
+        source: bookAuthor || "Libro",
+      });
+      setBookTitle("");
+      setBookAuthor("");
+      setBookFile(null);
+      setBookDone(true);
+      setBookStatus("");
+      await loadItems();
+    } catch (e) {
+      setBookStatus("❌ Errore: " + e.message);
+    }
+    setBookLoading(false);
+  }
+
+  async function uploadBook() {
+    if (!bookFile || !bookTitle) return;
+    setBookLoading(true);
+    setBookDone(false);
+    try {
+      setBookStatus("📤 Caricamento PDF...");
+      const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://qnawdmghgwgvhzqzarrw.supabase.co";
+      const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY;
+      const fileName = `${Date.now()}-${bookFile.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+      const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/pdf-menus/books/${fileName}`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${SUPABASE_KEY}`, "apikey": SUPABASE_KEY, "Content-Type": "application/pdf", "x-upsert": "true" },
+        body: bookFile,
+      });
+      if (!uploadRes.ok) throw new Error("Upload fallito");
+      const pdfUrl = `${SUPABASE_URL}/storage/v1/object/public/pdf-menus/books/${fileName}`;
+
+      setBookStatus("🧠 L'AI sta leggendo il libro...");
+      const res = await fetch("/api/pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pdfUrl,
+          restaurantName: bookTitle,
+          sectionName: "libro",
+          isBook: true,
+          bookAuthor,
+        }),
+      });
+      const data = await res.json();
+      if (!data.result) throw new Error(data.error || "Errore analisi");
+
+      setBookStatus("💾 Salvo nel knowledge base...");
+      await callKnowledge("save", {
+        title: `📚 ${bookTitle}${bookAuthor ? " — " + bookAuthor : ""}`,
+        content: data.result,
+        category: "libro_vino",
+        source: bookAuthor || "Libro PDF",
+      });
+
+      setBookTitle(""); setBookAuthor(""); setBookFile(null);
+      setBookDone(true);
+      setBookStatus("");
+      await loadItems();
+    } catch(e) {
+      setBookStatus("❌ Errore: " + e.message);
+    }
+    setBookLoading(false);
+  }
+
+  async function saveBook() {
+    if (!book.file || !book.title) return;
+    setBookLoading(true);
+    setBookStatus("📤 Caricamento PDF...");
+    try {
+      const SURL = import.meta.env.VITE_SUPABASE_URL || "https://qnawdmghgwgvhzqzarrw.supabase.co";
+      const SKEY = import.meta.env.VITE_SUPABASE_KEY;
+      const fileName = Date.now() + "-" + book.file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const upRes = await fetch(`${SURL}/storage/v1/object/pdf-menus/${fileName}`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${SKEY}`, "apikey": SKEY, "Content-Type": "application/pdf", "x-upsert": "true" },
+        body: book.file,
+      });
+      if (!upRes.ok) throw new Error("Upload fallito");
+      const pdfUrl = `${SURL}/storage/v1/object/public/pdf-menus/${fileName}`;
+      setBookStatus("🧠 L'AI sta leggendo il libro...");
+      const res = await fetch("/api/pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pdfUrl, restaurantName: book.title, sectionName: "libro" }),
+      });
+      const data = await res.json();
+      if (data.result) {
+        setBookStatus("💾 Salvo nel knowledge base...");
+        await fetch("/api/knowledge", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "save",
+            title: `📚 ${book.title}${book.author ? " — " + book.author : ""}`,
+            content: data.result,
+            category: "libro_vino",
+            source: book.author || "Libro",
+          }),
+        });
+        setBookStatus("✅ Libro acquisito! L'AI ora conosce questo contenuto.");
+        setBook({ title: "", author: "", file: null });
+        if (bookRef) bookRef.value = "";
+        await loadItems();
+      } else {
+        setBookStatus("❌ Errore: " + (data.error || "sconosciuto"));
+      }
+    } catch (e) {
+      setBookStatus("❌ Errore: " + e.message);
+    }
+    setBookLoading(false);
   }
 
   async function importYoutube() {
@@ -126,7 +286,7 @@ export default function AdminPanel({ user, onClose }) {
 
       {/* Tab selector */}
       <div style={{ display: "flex", background: `${MUTED}44`, borderRadius: 10, padding: 4, border: `1px solid ${GOLD}22` }}>
-        {[{ key: "testo", label: "✍️ Testo" }, { key: "news", label: "📰 Notizie" }, { key: "youtube", label: "▶️ YouTube" }].map(t => (
+        {[{ key: "testo", label: "✍️ Testo" }, { key: "news", label: "📰 Notizie" }, { key: "libri", label: "📚 Libri PDF" }, { key: "youtube", label: "▶️ YouTube" }].map(t => (
           <button key={t.key} onClick={() => setActiveTab(t.key)} style={{ flex: 1, padding: "9px", borderRadius: 7, background: activeTab === t.key ? `linear-gradient(135deg, ${BURGUNDY}, #9B2335)` : "transparent", border: "none", color: activeTab === t.key ? CREAM : `${CREAM}66`, fontFamily: "Georgia, serif", fontSize: 13, cursor: "pointer", transition: "all 0.2s" }}>{t.label}</button>
         ))}
       </div>
@@ -186,7 +346,150 @@ export default function AdminPanel({ user, onClose }) {
         </div>
       )}
 
-      {/* Tab: YouTube */}}
+      {/* Tab: Libri PDF */}
+      {activeTab === "libri" && (
+        <div style={{ background: `${MUTED}33`, borderRadius: 16, padding: 20, border: `1px solid ${GOLD}22` }}>
+          <div style={{ fontSize: 12, color: GOLD + "88", marginBottom: 16, lineHeight: 1.6 }}>
+            Carica libri digitali sul vino — Claude li legge, estrae tutto il sapere e lo salva nel database. L'AI impara automaticamente da ogni libro.
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <input value={bookTitle} onChange={e => setBookTitle(e.target.value)} placeholder="Titolo libro *" style={inputStyle} />
+            <input value={bookAuthor} onChange={e => setBookAuthor(e.target.value)} placeholder="Autore (es. 'Jancis Robinson', 'Hugh Johnson')" style={inputStyle} />
+            <div onClick={() => document.getElementById("bookFileInput").click()}
+              style={{ ...inputStyle, cursor: "pointer", display: "flex", alignItems: "center", gap: 10, minHeight: 44 }}>
+              <span style={{ fontSize: 20 }}>📎</span>
+              <span style={{ color: bookFile ? GOLD : CREAM + "44" }}>
+                {bookFile ? `${bookFile.name} (${(bookFile.size/1024/1024).toFixed(1)} MB)` : "Clicca per caricare il PDF..."}
+              </span>
+              <input id="bookFileInput" type="file" accept=".pdf,application/pdf"
+                onChange={e => { setBookFile(e.target.files[0]); setBookDone(false); setBookStatus(""); }}
+                style={{ display: "none" }} />
+            </div>
+            <div style={{ fontSize: 11, color: CREAM + "44", lineHeight: 1.5 }}>
+              ⚠️ Max 100 pagine per PDF. Per libri più lunghi, dividi con ilovepdf.com e carica sezione per sezione.
+            </div>
+            <button onClick={saveBook} disabled={bookLoading || !bookFile || !bookTitle}
+              style={{ padding: "12px", background: bookDone ? "#2A7A2A" : bookLoading ? `${MUTED}88` : `linear-gradient(135deg, ${GOLD}, #8B6914)`, border: "none", borderRadius: 10, color: bookLoading ? CREAM : DARK, fontFamily: "'Cormorant Garamond', serif", fontSize: 15, fontWeight: 700, cursor: bookLoading || !bookFile || !bookTitle ? "not-allowed" : "pointer" }}>
+              {bookLoading ? (bookStatus || "Elaborazione...") : bookDone ? "✓ Libro salvato nel knowledge base!" : "📚 Carica e impara →"}
+            </button>
+          </div>
+
+          {/* Libri salvati */}
+          <div style={{ marginTop: 20 }}>
+            <div style={{ fontSize: 11, color: GOLD, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>Libri nel database</div>
+            {items.filter(i => i.category === "libro_vino").length === 0 && (
+              <div style={{ color: CREAM + "44", fontSize: 13, fontStyle: "italic" }}>Nessun libro ancora caricato</div>
+            )}
+            {items.filter(i => i.category === "libro_vino").map(item => (
+              <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${GOLD}11` }}>
+                <div>
+                  <div style={{ color: CREAM + "CC", fontSize: 13 }}>{item.title}</div>
+                  <div style={{ color: CREAM + "44", fontSize: 11, marginTop: 2 }}>{new Date(item.created_at).toLocaleDateString("it-IT")}</div>
+                </div>
+                <button onClick={() => deleteItem(item.id)} style={{ background: "none", border: "none", color: CREAM + "33", cursor: "pointer", fontSize: 16 }}>✕</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Libri PDF */}
+      {activeTab === "books" && (
+        <div style={{ background: `${MUTED}33`, borderRadius: 16, padding: 20, border: `1px solid ${GOLD}22` }}>
+          <div style={{ fontSize: 12, color: GOLD + "88", marginBottom: 16, lineHeight: 1.6 }}>
+            Carica libri digitali sul vino — l'AI li legge, li riassume e impara da loro. Max 100 pagine per file (dividi con ilovepdf.com se necessario).
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <input value={bookTitle} onChange={e => setBookTitle(e.target.value)} placeholder="Titolo libro *" style={inputStyle} />
+            <input value={bookAuthor} onChange={e => setBookAuthor(e.target.value)} placeholder="Autore (es. 'Jancis Robinson', 'Hugh Johnson')" style={inputStyle} />
+            <div onClick={() => document.getElementById("bookFileInput").click()}
+              style={{ ...inputStyle, cursor: "pointer", display: "flex", alignItems: "center", gap: 10, minHeight: 44 }}>
+              <span style={{ fontSize: 20 }}>📎</span>
+              <span style={{ color: bookFile ? GOLD : CREAM + "44" }}>
+                {bookFile ? `${bookFile.name} (${(bookFile.size/1024/1024).toFixed(1)} MB)` : "Clicca per caricare il PDF..."}
+              </span>
+              <input id="bookFileInput" type="file" accept=".pdf,application/pdf"
+                onChange={e => { setBookFile(e.target.files[0]); setBookDone(false); setBookStatus(""); }}
+                style={{ display: "none" }} />
+            </div>
+            <button onClick={uploadBook} disabled={bookLoading || !bookFile || !bookTitle}
+              style={{ padding: "12px", background: bookDone ? "#2A7A2A" : bookLoading ? `${MUTED}88` : `linear-gradient(135deg, ${GOLD}, #8B6914)`, border: "none", borderRadius: 10, color: bookLoading ? CREAM : DARK, fontFamily: "'Cormorant Garamond', serif", fontSize: 15, fontWeight: 700, cursor: bookLoading || !bookFile || !bookTitle ? "not-allowed" : "pointer" }}>
+              {bookLoading ? (bookStatus || "Elaborazione...") : bookDone ? "✓ Libro salvato nel database!" : "📚 Carica e impara →"}
+            </button>
+            {bookStatus && !bookLoading && <div style={{ fontSize: 13, color: bookStatus.startsWith("❌") ? "#E84040" : GOLD, textAlign: "center" }}>{bookStatus}</div>}
+          </div>
+
+          {/* Libri salvati */}
+          <div style={{ marginTop: 20 }}>
+            <div style={{ fontSize: 11, color: GOLD, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>
+              Libri nel database ({items.filter(i => i.category === "libro_vino").length})
+            </div>
+            {items.filter(i => i.category === "libro_vino").length === 0 && (
+              <div style={{ color: CREAM + "44", fontSize: 13, fontStyle: "italic" }}>Nessun libro ancora caricato</div>
+            )}
+            {items.filter(i => i.category === "libro_vino").map(item => (
+              <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${GOLD}11` }}>
+                <div>
+                  <div style={{ color: CREAM + "CC", fontSize: 13 }}>{item.title?.replace("📚 ", "")}</div>
+                  <div style={{ color: CREAM + "44", fontSize: 11, marginTop: 2 }}>{new Date(item.created_at).toLocaleDateString("it-IT")}</div>
+                </div>
+                <button onClick={() => deleteItem(item.id)} style={{ background: "none", border: "none", color: CREAM + "33", cursor: "pointer", fontSize: 16, padding: "0 4px" }}>✕</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Libri & PDF */}
+      {activeTab === "books" && (
+        <div style={{ background: `${MUTED}33`, borderRadius: 16, padding: 20, border: `1px solid ${GOLD}22`, display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ fontSize: 12, color: GOLD + "88", lineHeight: 1.6 }}>
+            Carica libri digitali sul vino, guide, manuali di degustazione — l'AI li legge e impara da ogni pagina.
+            Max 100 pagine per PDF. Per libri più lunghi, dividi con ilovepdf.com
+          </div>
+          <input value={book.title} onChange={e => setBook(b => ({ ...b, title: e.target.value }))}
+            placeholder="Titolo libro *" style={inputStyle} />
+          <input value={book.author} onChange={e => setBook(b => ({ ...b, author: e.target.value }))}
+            placeholder="Autore (es. 'Jancis Robinson', 'Hugh Johnson')" style={inputStyle} />
+          <div onClick={() => document.getElementById("bookFileInput").click()}
+            style={{ ...inputStyle, cursor: "pointer", display: "flex", alignItems: "center", gap: 10, minHeight: 44 }}>
+            <span style={{ fontSize: 20 }}>📎</span>
+            <span style={{ color: book.file ? GOLD : CREAM + "44" }}>
+              {book.file ? `${book.file.name} (${(book.file.size/1024/1024).toFixed(1)} MB)` : "Clicca per selezionare il PDF..."}
+            </span>
+            <input id="bookFileInput" type="file" accept=".pdf,application/pdf"
+              onChange={e => { setBook(b => ({ ...b, file: e.target.files[0] })); setBookStatus(""); }}
+              ref={r => setBookRef(r)} style={{ display: "none" }} />
+          </div>
+          <button onClick={saveBook} disabled={bookLoading || !book.file || !book.title}
+            style={{ padding: "13px", background: bookLoading || !book.file || !book.title ? `${MUTED}88` : `linear-gradient(135deg, ${GOLD}, #8B6914)`, border: "none", borderRadius: 10, color: DARK, fontFamily: "'Cormorant Garamond', serif", fontSize: 15, fontWeight: 700, cursor: bookLoading || !book.file || !book.title ? "not-allowed" : "pointer" }}>
+            {bookLoading ? (bookStatus || "Elaborazione...") : "📚 Carica e insegna all'AI →"}
+          </button>
+          {bookStatus && !bookLoading && (
+            <div style={{ fontSize: 13, color: bookStatus.startsWith("✅") ? "#4CAF50" : bookStatus.startsWith("❌") ? "#FF4444" : GOLD, textAlign: "center", padding: "8px", background: `${MUTED}33`, borderRadius: 8 }}>
+              {bookStatus}
+            </div>
+          )}
+          {/* Libri già caricati */}
+          <div style={{ marginTop: 8 }}>
+            <div style={{ fontSize: 11, color: GOLD, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>Libri nel database</div>
+            {items.filter(i => i.category === "libro_vino").length === 0 && (
+              <div style={{ color: CREAM + "44", fontSize: 13, fontStyle: "italic" }}>Nessun libro ancora caricato</div>
+            )}
+            {items.filter(i => i.category === "libro_vino").map(item => (
+              <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${GOLD}11` }}>
+                <div>
+                  <div style={{ color: CREAM + "CC", fontSize: 13 }}>{item.title?.replace("📚 ", "")}</div>
+                  <div style={{ color: CREAM + "44", fontSize: 11, marginTop: 2 }}>{new Date(item.created_at).toLocaleDateString("it-IT")}</div>
+                </div>
+                <button onClick={() => deleteItem(item.id)} style={{ background: "none", border: "none", color: CREAM + "33", cursor: "pointer", fontSize: 16 }}>✕</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Tab: YouTube */}}}
       {activeTab === "youtube" && (
         <div style={{ background: `${MUTED}33`, borderRadius: 16, padding: 20, border: `1px solid ${GOLD}22` }}>
           <div style={{ fontSize: 13, color: `${GOLD}88`, marginBottom: 16, lineHeight: 1.6 }}>
