@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="500" height="500">
+  <defs>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#D4AF6A"/>
+      <stop offset="50%" style="stop-color:#C9A84C"/>
+      <stop offset="100%" style="stop-color:#9A7B35"/>
+    </linearGradient>
+    <linearGradient id="wine" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#A83248"/>
+      <stop offset="100%" style="stop-color:#5C1120"/>
+    </linearGradient>
+    <linearGradient id="wineFill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B1A2F;stop-opacity:0.7"/>
+      <stop offset="100%" style="stop-color:#5C1120;stop-opacity:0.9"/>
+    </linearGradient>
+  </defs>
+
+  <circle cx="250" cy="220" r="155" fill="none" stroke="url(#gold)" stroke-width="0.6" opacity="0.4"/>
+  <circle cx="250" cy="220" r="148" fill="none" stroke="url(#gold)" stroke-width="0.3" opacity="0.2"/>
+
+  <path d="M205 75 C200 95 193 130 196 158 C199 180 218 195 250 197 C282 195 301 180 304 158 C307 130 300 95 295 75 Z"
+        fill="none" stroke="url(#gold)" stroke-width="1.2"/>
+  <path d="M207 148 C205 165 210 180 224 190 C234 197 250 197 250 197 C250 197 266 197 276 190 C290 180 295 165 293 148 Z"
+        fill="url(#wineFill)"/>
+  <path d="M215 90 C213 110 211 130 212 148" fill="none" stroke="white" stroke-width="0.8" opacity="0.15" stroke-linecap="round"/>
+  <line x1="250" y1="197" x2="250" y2="278" stroke="url(#gold)" stroke-width="1.1"/>
+  <ellipse cx="250" cy="238" rx="3" ry="1.5" fill="url(#gold)" opacity="0.6"/>
+  <path d="M220 278 Q250 285 280 278" fill="none" stroke="url(#gold)" stroke-width="1.2" stroke-linecap="round"/>
+  <path d="M215 282 Q250 290 285 282" fill="none" stroke="url(#gold)" stroke-width="0.6" stroke-linecap="round" opacity="0.4"/>
+
+  <path d="M304 88 C312 80 320 78 322 86 C318 90 310 88 304 88" fill="url(#gold)" opacity="0.5"/>
+  <path d="M318 80 C324 70 330 72" fill="none" stroke="url(#gold)" stroke-width="0.8" stroke-linecap="round" opacity="0.5"/>
+  <circle cx="312" cy="100" r="6.5" fill="url(#wine)" opacity="0.75"/>
+  <circle cx="323" cy="108" r="6.5" fill="url(#wine)" opacity="0.75"/>
+  <circle cx="312" cy="116" r="6.5" fill="url(#wine)" opacity="0.75"/>
+  <circle cx="323" cy="124" r="6.5" fill="url(#wine)" opacity="0.75"/>
+  <circle cx="312" cy="132" r="6.5" fill="url(#wine)" opacity="0.75"/>
+  <circle cx="320" cy="141" r="5.5" fill="url(#wine)" opacity="0.65"/>
+  <circle cx="310" cy="98" r="1.8" fill="white" opacity="0.25"/>
+  <circle cx="321" cy="106" r="1.8" fill="white" opacity="0.25"/>
+  <circle cx="310" cy="114" r="1.8" fill="white" opacity="0.25"/>
+
+  <line x1="145" y1="315" x2="218" y2="315" stroke="url(#gold)" stroke-width="0.6" opacity="0.5"/>
+  <circle cx="250" cy="315" r="2" fill="url(#gold)" opacity="0.6"/>
+  <line x1="282" y1="315" x2="355" y2="315" stroke="url(#gold)" stroke-width="0.6" opacity="0.5"/>
+
+  <text x="250" y="345"
+        font-family="Didot, Bodoni MT, Garamond, Georgia, serif"
+        font-size="18" font-weight="300"
+        fill="url(#gold)" text-anchor="middle"
+        letter-spacing="12" opacity="0.9">SO</text>
+
+  <text x="250" y="385"
+        font-family="Didot, Bodoni MT, Garamond, Georgia, serif"
+        font-size="52" font-weight="300"
+        fill="url(#wine)" text-anchor="middle"
+        letter-spacing="4">Wine</text>
+
+  <text x="250" y="415"
+        font-family="Didot, Bodoni MT, Garamond, Georgia, serif"
+        font-size="18" font-weight="300"
+        fill="url(#gold)" text-anchor="middle"
+        letter-spacing="12" opacity="0.9">NOT</text>
+
+  <line x1="175" y1="432" x2="325" y2="432" stroke="url(#gold)" stroke-width="0.5" opacity="0.3"/>
+</svg>
