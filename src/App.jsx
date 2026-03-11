@@ -6,6 +6,7 @@ import PdfTab from "./PdfTab";
 import DiaryTab from "./DiaryTab";
 import MapTab from "./MapTab";
 import ExperiencesTab from "./ExperiencesTab";
+import RestaurantIntel from "./RestaurantIntel";
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -115,6 +116,8 @@ export default function VinoAI({ user, supabase, isPremium = false }) {
   const [gemAnalyses, setGemAnalyses] = useState(0);
   const [showAdmin, setShowAdmin] = useState(false);
   const [geoWelcome, setGeoWelcome] = useState("");
+  const [geoCity, setGeoCity] = useState("");
+  const [showIntel, setShowIntel] = useState(false);
   const bottomRef = useRef();
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
@@ -127,7 +130,10 @@ export default function VinoAI({ user, supabase, isPremium = false }) {
         const d = await r.json();
         const city = d.address?.city || d.address?.town || d.address?.village || d.address?.county || "";
         const region = d.address?.state || "";
-        if (city) setGeoWelcome(`📍 Vedo che sei a ${city}${region ? `, ${region}` : ""} — scopri i migliori ristoranti vicino a te nella Mappa!`);
+        if (city) {
+          setGeoCity(`${city}${region ? `, ${region}` : ""}`);
+          setGeoWelcome(`📍 Vedo che sei a ${city}${region ? `, ${region}` : ""} — scopri i migliori ristoranti vicino a te nella Mappa!`);
+        }
       } catch (e) {}
     }, () => {});
   }, []);
@@ -313,8 +319,13 @@ export default function VinoAI({ user, supabase, isPremium = false }) {
 
       {geoWelcome && (
         <div style={{ padding: "8px 32px 0", maxWidth: 800, margin: "0 auto", width: "100%" }}>
-          <div onClick={() => { setTab("map"); setGeoWelcome(""); }} style={{ padding: "9px 16px", background: "#6B1A2A44", borderRadius: 10, border: "1px solid #C9A84C33", fontSize: 12, color: "#C9A84C", cursor: "pointer" }}>
-            {geoWelcome} — <span style={{ textDecoration: "underline" }}>Vai alla Mappa</span>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <div onClick={() => { setTab("map"); setGeoWelcome(""); }} style={{ flex: 1, padding: "9px 16px", background: "#6B1A2A44", borderRadius: 10, border: "1px solid #C9A84C33", fontSize: 12, color: "#C9A84C", cursor: "pointer" }}>
+              {geoWelcome} — <span style={{ textDecoration: "underline" }}>Vai alla Mappa</span>
+            </div>
+            <button onClick={() => setShowIntel(true)} style={{ padding: "9px 14px", background: "linear-gradient(135deg, #6B1A2A, #9B2335)", border: "1px solid #C9A84C44", borderRadius: 10, color: "#F5ECD7", fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "Georgia, serif" }}>
+              🔍 Cerca ristorante
+            </button>
           </div>
         </div>
       )}
@@ -410,8 +421,11 @@ export default function VinoAI({ user, supabase, isPremium = false }) {
         {tab === "experiences" && <ExperiencesTab user={user} />}
         {tab === "pdf" && <PdfTab user={user} isPremium={isPremium} />}
         {tab === "diary" && <DiaryTab user={user} />}
-        {showAdmin && <AdminPanel user={user} onClose={() => setShowAdmin(false)} />}
+
       </main>
+
+      {showIntel && <RestaurantIntel city={geoCity} onClose={() => setShowIntel(false)} />}
+      {showAdmin && <AdminPanel user={user} onClose={() => setShowAdmin(false)} />}
     </div>
   );
 }
