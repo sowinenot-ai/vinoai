@@ -1,12 +1,14 @@
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 import CommunityTab from "./CommunityTab";
+import CellarTab from "./CellarTab";
 import AdminPanel from "./AdminPanel";
 import PdfTab from "./PdfTab";
 import DiaryTab from "./DiaryTab";
 import MapTab from "./MapTab";
 import ExperiencesTab from "./ExperiencesTab";
 import RestaurantIntel from "./RestaurantIntel";
+import CantinTab from "./CantinTab";
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -363,56 +365,7 @@ export default function VinoAI({ user, supabase, isPremium = false }) {
           </div>
         )}
 
-        {tab === "cellar" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 24, fontWeight: 600, margin: 0, color: CREAM }}>La mia Cantina</h2>
-                <p style={{ margin: "4px 0 0", fontSize: 12, color: GOLD + "99", letterSpacing: "0.1em" }}>{cellar.reduce((a, b) => a + b.qty, 0)} bottiglie · {cellar.length} etichette</p>
-              </div>
-              <button onClick={() => setAddingWine(!addingWine)} style={{ padding: "8px 18px", borderRadius: 20, background: addingWine ? `${MUTED}88` : `linear-gradient(135deg, ${BURGUNDY}, #9B2335)`, border: `1px solid ${BURGUNDY}`, color: CREAM, fontFamily: "'Cormorant Garamond', serif", fontSize: 14, cursor: "pointer" }}>
-                {addingWine ? "✕ Annulla" : "+ Aggiungi"}
-              </button>
-            </div>
-            {addingWine && (
-              <div style={{ background: `${MUTED}44`, borderRadius: 16, padding: 20, border: `1px solid ${GOLD}22`, animation: "fadeUp 0.3s ease", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <input placeholder="Nome vino *" value={newWine.name} onChange={e => setNewWine(p => ({ ...p, name: e.target.value }))} style={inputStyle} />
-                <input placeholder="Produttore" value={newWine.producer} onChange={e => setNewWine(p => ({ ...p, producer: e.target.value }))} style={inputStyle} />
-                <input placeholder="Annata *" type="number" value={newWine.year} onChange={e => setNewWine(p => ({ ...p, year: e.target.value }))} style={inputStyle} />
-                <input placeholder="Regione" value={newWine.region} onChange={e => setNewWine(p => ({ ...p, region: e.target.value }))} style={inputStyle} />
-                <input placeholder="Quantità" type="number" value={newWine.qty} onChange={e => setNewWine(p => ({ ...p, qty: e.target.value }))} style={inputStyle} />
-                <input placeholder="Note personali" value={newWine.notes} onChange={e => setNewWine(p => ({ ...p, notes: e.target.value }))} style={inputStyle} />
-                <button onClick={addWine} style={{ gridColumn: "1/-1", padding: "10px", background: `linear-gradient(135deg, ${BURGUNDY}, #9B2335)`, border: "none", borderRadius: 8, color: CREAM, fontFamily: "'Cormorant Garamond', serif", fontSize: 15, cursor: "pointer" }}>Aggiungi alla cantina →</button>
-              </div>
-            )}
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {cellar.map(w => (
-                <div key={w.id} style={{ background: `${MUTED}33`, borderRadius: 12, padding: "14px 18px", border: `1px solid ${GOLD}22`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 8, background: `linear-gradient(135deg, ${BURGUNDY}88, #9B233566)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, border: `1px solid ${GOLD}33`, flexShrink: 0 }}>🍾</div>
-                    <div>
-                      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 16, fontWeight: 600, color: CREAM }}>{w.name} {w.year}</div>
-                      <div style={{ fontSize: 12, color: GOLD + "AA", marginTop: 2 }}>{w.producer} · {w.region}</div>
-                      {w.notes && <div style={{ fontSize: 11, color: CREAM + "66", marginTop: 3, fontStyle: "italic" }}>{w.notes}</div>}
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <div style={{ padding: "4px 12px", borderRadius: 20, background: `${BURGUNDY}44`, border: `1px solid ${BURGUNDY}88`, fontSize: 12, color: GOLD, fontFamily: "'Cormorant Garamond', serif" }}>× {w.qty}</div>
-                    <button onClick={() => setCellar(p => p.filter(x => x.id !== w.id))} style={{ background: "none", border: "none", color: CREAM + "44", cursor: "pointer", fontSize: 16, padding: 4 }}>✕</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <button onClick={getCellarAdvice} disabled={cellarLoading} style={{ width: "100%", padding: "14px", background: cellarLoading ? `${MUTED}88` : `linear-gradient(135deg, ${BURGUNDY}88, #9B233566)`, border: `1px solid ${GOLD}44`, borderRadius: 12, color: GOLD, fontFamily: "'Cormorant Garamond', serif", fontSize: 15, cursor: cellarLoading ? "not-allowed" : "pointer" }}>
-              {cellarLoading ? "🍷 Analisi in corso..." : "✦ Chiedi consiglio al sommelier sulla mia cantina"}
-            </button>
-            {cellarAdvice && (
-              <div style={{ padding: 20, background: `${MUTED}44`, borderRadius: 12, border: `1px solid ${GOLD}33`, color: "#E8D9BF", fontSize: 14, lineHeight: 1.7, fontFamily: "Georgia, serif", animation: "fadeUp 0.4s ease", borderLeft: `3px solid ${GOLD}88`, whiteSpace: "pre-wrap" }}>
-                {cellarAdvice}
-              </div>
-            )}
-          </div>
-        )}
+        {tab === "cellar" && <CellarTab user={user} isPremium={isPremium} />}
 
         {tab === "pairing" && <PairingTab askClaude={askClaude} />}
         {tab === "gems" && <GemsTab analyzeGem={analyzeGem} gemAnalyses={gemAnalyses} setGemAnalyses={setGemAnalyses} freeLimit={FREE_LIMIT} />}
@@ -542,5 +495,8 @@ function GemsTab({ analyzeGem, gemAnalyses, setGemAnalyses, freeLimit }) {
     </div>
   );
 }
+
+
+
 
 
