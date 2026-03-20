@@ -33,6 +33,83 @@ function scoreColor(score) {
   return "#888";
 }
 
+// ============================================================
+// GEM CARD — carta premium per ogni gemma
+// ============================================================
+function GemCard({ g }) {
+  const color = scoreColor(g.gem_score);
+  const markup = parseFloat(g.markup_factor);
+  const markupColor = markup <= 2 ? "#4CAF50" : markup <= 3 ? "#FF8C00" : "#E84040";
+  const saving = g.retail_price && g.restaurant_price
+    ? Math.round(((g.retail_price * 2.5) - g.restaurant_price))
+    : null;
+
+  return (
+    <div style={{
+      background: `linear-gradient(135deg, ${MUTED}66, ${MUTED}33)`,
+      border: `1px solid ${GOLD}55`,
+      borderLeft: `3px solid ${color}`,
+      borderRadius: 12,
+      padding: "14px 16px",
+      marginBottom: 10,
+      position: "relative",
+      overflow: "hidden",
+    }}>
+      {/* Score badge */}
+      <div style={{ position: "absolute", top: 10, right: 12, display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <span style={{ color, fontWeight: 800, fontSize: 18, fontFamily: "'Cormorant Garamond', serif", lineHeight: 1 }}>{g.gem_score}</span>
+        <span style={{ color: `${color}88`, fontSize: 9, letterSpacing: "0.1em" }}>/100</span>
+      </div>
+
+      {/* Nome vino */}
+      <div style={{ color: CREAM, fontSize: 16, fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, paddingRight: 48, lineHeight: 1.3 }}>
+        🍷 {g.wine_name || "Vino"}
+      </div>
+
+      {/* Classificazione */}
+      {g.classification && (
+        <div style={{ color: GOLD, fontSize: 11, marginTop: 4, letterSpacing: "0.08em" }}>
+          {g.classification}
+        </div>
+      )}
+
+      {/* Prezzi */}
+      {(g.restaurant_price || g.retail_price) && (
+        <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
+          {g.restaurant_price && (
+            <div style={{ background: `${BURGUNDY}66`, border: `1px solid ${BURGUNDY}`, borderRadius: 8, padding: "5px 12px", textAlign: "center" }}>
+              <div style={{ color: `${CREAM}66`, fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase" }}>Prezzo carta</div>
+              <div style={{ color: CREAM, fontSize: 16, fontWeight: 700, fontFamily: "'Cormorant Garamond', serif" }}>€{g.restaurant_price}</div>
+            </div>
+          )}
+          {g.retail_price && (
+            <div style={{ background: `${MUTED}44`, border: `1px solid ${GOLD}22`, borderRadius: 8, padding: "5px 12px", textAlign: "center" }}>
+              <div style={{ color: `${CREAM}55`, fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase" }}>Prezzo retail</div>
+              <div style={{ color: `${CREAM}88`, fontSize: 16, fontFamily: "'Cormorant Garamond', serif" }}>~€{g.retail_price}</div>
+            </div>
+          )}
+          {g.markup_factor && (
+            <div style={{ background: `${markupColor}18`, border: `1px solid ${markupColor}44`, borderRadius: 8, padding: "5px 12px", textAlign: "center" }}>
+              <div style={{ color: `${markupColor}88`, fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase" }}>Ricarico</div>
+              <div style={{ color: markupColor, fontSize: 16, fontWeight: 700, fontFamily: "'Cormorant Garamond', serif" }}>{markup}x</div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Spiegazione perché è una gemma */}
+      {g.notes && (
+        <div style={{ marginTop: 12, padding: "10px 12px", background: `${GOLD}0D`, border: `1px solid ${GOLD}22`, borderRadius: 8 }}>
+          <div style={{ fontSize: 10, color: GOLD, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 5 }}>✦ Perché è una gemma</div>
+          <div style={{ color: `${CREAM}CC`, fontSize: 13, lineHeight: 1.7, fontStyle: "italic", fontFamily: "Georgia, serif" }}>
+            {g.notes}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Mappatura città → { country, region, continent }
 const CITY_GEO = {
   "cogne": { country: "Italia", region: "Valle d'Aosta", continent: "Europa" },
@@ -382,31 +459,23 @@ function SelectedRestaurant({ restaurant: r, onClose, canSeeGems }) {
       <div style={{ padding: "0 18px 18px", display: "flex", flexDirection: "column", gap: 14 }}>
         {gems.length > 0 && (
           <div>
-            <div style={{ fontSize: 11, color: GOLD, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 10 }}>💎 Gemme Nascoste</div>
-            {canSeeGems ? gems.map((g, i) => (
-              <div key={i} style={{ padding: "10px 0", borderBottom: `1px solid ${GOLD}11` }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ color: CREAM, fontSize: 14, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600 }}>🍷 {g.wine_name || "Vino"}</div>
-                    {g.classification && <div style={{ color: `${GOLD}77`, fontSize: 11, marginTop: 2 }}>{g.classification}</div>}
-                    {g.restaurant_price && (
-                      <div style={{ color: `${CREAM}66`, fontSize: 12, marginTop: 4 }}>
-                        💶 Carta: €{g.restaurant_price}{g.retail_price ? ` · Retail: ~€${g.retail_price}` : ""}
-                        {g.markup_factor && <span style={{ color: g.markup_factor <= 2.5 ? "#4CAF50" : "#FF8C00", marginLeft: 6 }}>({g.markup_factor}x)</span>}
-                      </div>
-                    )}
-                    {g.notes && <div style={{ color: `${CREAM}88`, fontSize: 12, marginTop: 6, fontStyle: "italic", borderLeft: `2px solid ${GOLD}44`, paddingLeft: 8 }}>{g.notes}</div>}
-                  </div>
-                  <span style={{ color: scoreColor(g.gem_score), fontWeight: 700, fontSize: 13, background: `${scoreColor(g.gem_score)}18`, padding: "3px 10px", borderRadius: 20, flexShrink: 0 }}>{g.gem_score}/100</span>
+            <div style={{ fontSize: 11, color: GOLD, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 12 }}>
+              💎 {gems.length} Gemm{gems.length === 1 ? "a" : "e"} Nascost{gems.length === 1 ? "a" : "e"}
+            </div>
+            {canSeeGems ? (
+              gems.map((g, i) => <GemCard key={i} g={g} />)
+            ) : (
+              <div style={{ textAlign: "center", padding: "20px 16px", background: `${MUTED}44`, borderRadius: 12, border: `1px solid ${GOLD}22` }}>
+                <div style={{ fontSize: 28, marginBottom: 8 }}>💎</div>
+                <div style={{ color: CREAM, fontSize: 15, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, marginBottom: 6 }}>
+                  {gems.length} gemm{gems.length === 1 ? "a nascosta" : "e nascoste"} in questa carta
                 </div>
-              </div>
-            )) : (
-              <div style={{ textAlign: "center", padding: 14, background: `${MUTED}44`, borderRadius: 10 }}>
-                <div style={{ fontSize: 22, marginBottom: 6 }}>🔒</div>
-                <div style={{ color: `${CREAM}66`, fontSize: 12, marginBottom: 10 }}>{gems.length} gemme nascoste — solo Premium</div>
+                <div style={{ color: `${CREAM}66`, fontSize: 12, marginBottom: 14 }}>
+                  I vini con il miglior rapporto qualità/prezzo — visibili solo agli utenti Premium
+                </div>
                 <button onClick={async () => { const res = await fetch("/api/checkout", { method: "POST" }); const d = await res.json(); if (d.url) window.location.href = d.url; }}
-                  style={{ padding: "7px 18px", borderRadius: 20, background: `linear-gradient(135deg, ${GOLD}, #A07830)`, border: "none", color: DARK, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                  ⭐ Premium — €4.99/mese
+                  style={{ padding: "10px 24px", borderRadius: 20, background: `linear-gradient(135deg, ${GOLD}, #A07830)`, border: "none", color: DARK, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "'Cormorant Garamond', serif" }}>
+                  ⭐ Sblocca con Premium — €4.99/mese
                 </button>
               </div>
             )}
@@ -611,28 +680,22 @@ function RestaurantRow({ r, gems, topScore, canSeeGems, onSelectOnMap }) {
         <div style={{ borderTop: `1px solid ${GOLD}11`, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 14 }}>
           {gems.length > 0 && (
             <div>
-              <div style={{ fontSize: 11, color: GOLD, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 10 }}>💎 Gemme Nascoste</div>
-              {canSeeGems ? gems.map((g, i) => (
-                <div key={i} style={{ padding: "10px 0", borderBottom: `1px solid ${GOLD}11` }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ color: CREAM, fontSize: 14, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600 }}>🍷 {g.wine_name || "Vino"}</div>
-                      {g.classification && <div style={{ color: `${GOLD}77`, fontSize: 11, marginTop: 2 }}>{g.classification}</div>}
-                      {g.restaurant_price && (
-                        <div style={{ color: `${CREAM}66`, fontSize: 12, marginTop: 4 }}>
-                          💶 Carta: €{g.restaurant_price}{g.retail_price ? ` · Retail: ~€${g.retail_price}` : ""}
-                          {g.markup_factor && <span style={{ color: g.markup_factor <= 2.5 ? "#4CAF50" : "#FF8C00", marginLeft: 6 }}>({g.markup_factor}x)</span>}
-                        </div>
-                      )}
-                      {g.notes && <div style={{ color: `${CREAM}88`, fontSize: 12, marginTop: 6, fontStyle: "italic", borderLeft: `2px solid ${GOLD}44`, paddingLeft: 8 }}>{g.notes}</div>}
-                    </div>
-                    <span style={{ color: scoreColor(g.gem_score), fontWeight: 700, fontSize: 13, background: `${scoreColor(g.gem_score)}18`, padding: "3px 10px", borderRadius: 20, flexShrink: 0 }}>{g.gem_score}/100</span>
+              <div style={{ fontSize: 11, color: GOLD, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 12 }}>
+                💎 {gems.length} Gemm{gems.length === 1 ? "a" : "e"} Nascost{gems.length === 1 ? "a" : "e"}
+              </div>
+              {canSeeGems ? (
+                gems.map((g, i) => <GemCard key={i} g={g} />)
+              ) : (
+                <div style={{ textAlign: "center", padding: "18px 16px", background: `${MUTED}44`, borderRadius: 12, border: `1px solid ${GOLD}22` }}>
+                  <div style={{ fontSize: 24, marginBottom: 6 }}>💎</div>
+                  <div style={{ color: CREAM, fontSize: 14, fontFamily: "'Cormorant Garamond', serif", marginBottom: 4 }}>
+                    {gems.length} gemm{gems.length === 1 ? "a nascosta" : "e nascoste"}
                   </div>
-                </div>
-              )) : (
-                <div style={{ textAlign: "center", padding: 14, background: `${MUTED}44`, borderRadius: 10 }}>
-                  <div style={{ fontSize: 20, marginBottom: 6 }}>🔒</div>
-                  <div style={{ color: `${CREAM}66`, fontSize: 12 }}>{gems.length} gemme — solo Premium</div>
+                  <div style={{ color: `${CREAM}55`, fontSize: 11, marginBottom: 12 }}>Solo per utenti Premium</div>
+                  <button onClick={async () => { const res = await fetch("/api/checkout", { method: "POST" }); const d = await res.json(); if (d.url) window.location.href = d.url; }}
+                    style={{ padding: "8px 20px", borderRadius: 20, background: `linear-gradient(135deg, ${GOLD}, #A07830)`, border: "none", color: DARK, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                    ⭐ Premium €4.99/mese
+                  </button>
                 </div>
               )}
             </div>
