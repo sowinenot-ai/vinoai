@@ -37,10 +37,17 @@ const SUGGESTIONS = [
   { icon: "🥩", text: "Miglior vino per una bistecca fiorentina?" },
 ];
 
+const SUPABASE_EDGE_URL = "https://qnawdmghgwgvhzqzarrw.supabase.co/functions/v1/analyze-wine";
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_KEY;
+
 async function askClaude(messages, onChunk) {
-  const res = await fetch("/api/chat", {
+  const res = await fetch(SUPABASE_EDGE_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+      "apikey": SUPABASE_ANON_KEY,
+    },
     body: JSON.stringify({ messages }),
   });
   if (!res.ok) throw new Error("Errore server");
@@ -81,20 +88,57 @@ function Spinner({ text = "Il sommelier sta riflettendo..." }) {
   );
 }
 
-function ChatBubble({ msg }) {
-  // (wineAction handled in parent)
+function ChatBubble({ msg, isPremium, isAdmin, onQuickAction }) {
   const isUser = msg.role === "user";
+  const canSeeGems = isPremium || isAdmin;
+
+  // Detect if this assistant message is about a restaurant
+  const isRestaurantMsg = !isUser && msg.content && (
+    msg.content.includes("carta") || msg.content.includes("vini") || msg.content.includes("ristorante") || msg.content.includes("Bellevue")
+  ) && msg.content.length > 100;
+
   return (
-    <div style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start", marginBottom: 16, animation: "fadeUp 0.3s ease" }}>
-      {!isUser && (
-        <div style={{ width: 36, height: 36, borderRadius: "50%", background: `linear-gradient(135deg, ${BURGUNDY}, #9B2335)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0, marginRight: 10, marginTop: 2, border: `1px solid ${GOLD}33` }}>🍷</div>
-      )}
-      <div style={{ maxWidth: "72%", background: isUser ? `linear-gradient(135deg, ${BURGUNDY}, #9B2335)` : `${MUTED}88`, border: `1px solid ${isUser ? BURGUNDY : GOLD + "33"}`, borderRadius: isUser ? "18px 18px 4px 18px" : "18px 18px 18px 4px", padding: "12px 16px", color: isUser ? CREAM : "#E8D9BF", fontFamily: "Georgia, serif", fontSize: 14.5, lineHeight: 1.75, backdropFilter: "blur(8px)" }}>
-        {msg.image && <img src={msg.image} alt="carta vini" style={{ maxWidth: "100%", borderRadius: 8, marginBottom: 8, display: "block" }} />}
-        {msg.content.split("\n").map((line, i) => (
-          <span key={i}>{line}{i < msg.content.split("\n").length - 1 && <br />}</span>
-        ))}
+    <div style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start", marginBottom: 16, animation: "fadeUp 0.3s ease", flexDirection: "column", alignItems: isUser ? "flex-end" : "flex-start" }}>
+      <div style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start", width: "100%" }}>
+        {!isUser && (
+          <div style={{ width: 36, height: 36, borderRadius: "50%", background: `linear-gradient(135deg, ${BURGUNDY}, #9B2335)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0, marginRight: 10, marginTop: 2, border: `1px solid ${GOLD}33` }}>🍷</div>
+        )}
+        <div style={{ maxWidth: "72%", background: isUser ? `linear-gradient(135deg, ${BURGUNDY}, #9B2335)` : `${MUTED}88`, border: `1px solid ${isUser ? BURGUNDY : GOLD + "33"}`, borderRadius: isUser ? "18px 18px 4px 18px" : "18px 18px 18px 4px", padding: "12px 16px", color: isUser ? CREAM : "#E8D9BF", fontFamily: "Georgia, serif", fontSize: 14.5, lineHeight: 1.75, backdropFilter: "blur(8px)" }}>
+          {msg.image && <img src={msg.image} alt="carta vini" style={{ maxWidth: "100%", borderRadius: 8, marginBottom: 8, display: "block" }} />}
+          {msg.content.split("\n").map((line, i) => (
+            <span key={i}>{line}{i < msg.content.split("\n").length - 1 && <br />}</span>
+          ))}
+        </div>
       </div>
+
+      {/* Quick actions dopo risposta ristorante */}
+      {isRestaurantMsg && onQuickAction && (
+        <div style={{ display: "flex", gap: 8, marginTop: 8, marginLeft: 46, flexWrap: "wrap" }}>
+          <button onClick={() => onQuickAction("Dammi 3 vini top da questa carta, uno per ogni fascia di prezzo")}
+            style={{ padding: "7px 14px", borderRadius: 20, background: `${MUTED}88`, border: `1px solid ${GOLD}44`, color: GOLD, fontSize: 12, cursor: "pointer", fontFamily: "Georgia, serif" }}>
+            🍷 3 vini consigliati
+          </button>
+          <button onClick={() => onQuickAction("Qual è il miglior abbinamento con il pesce di lago dalla carta?")}
+            style={{ padding: "7px 14px", borderRadius: 20, background: `${MUTED}88`, border: `1px solid ${GOLD}44`, color: GOLD, fontSize: 12, cursor: "pointer", fontFamily: "Georgia, serif" }}>
+            🍽️ Abbinamento piatto
+          </button>
+          <button onClick={() => onQuickAction("Qual è il vino migliore sotto i 60€ dalla carta?")}
+            style={{ padding: "7px 14px", borderRadius: 20, background: `${MUTED}88`, border: `1px solid ${GOLD}44`, color: GOLD, fontSize: 12, cursor: "pointer", fontFamily: "Georgia, serif" }}>
+            💶 Budget consigliato
+          </button>
+          {canSeeGems ? (
+            <button onClick={() => onQuickAction("Mostrami le gemme nascoste di questa carta — i vini con il miglior rapporto qualità prezzo che pochi conoscono")}
+              style={{ padding: "7px 14px", borderRadius: 20, background: `linear-gradient(135deg, ${BURGUNDY}88, #9B233566)`, border: `1px solid ${GOLD}88`, color: GOLD, fontSize: 12, cursor: "pointer", fontFamily: "Georgia, serif", fontWeight: 600 }}>
+              💎 Gemme nascoste
+            </button>
+          ) : (
+            <button onClick={async () => { const r = await fetch("/api/checkout", { method: "POST" }); const d = await r.json(); if (d.url) window.location.href = d.url; }}
+              style={{ padding: "7px 14px", borderRadius: 20, background: `${MUTED}44`, border: `1px solid ${GOLD}33`, color: CREAM + "55", fontSize: 12, cursor: "pointer", fontFamily: "Georgia, serif" }}>
+              🔒 Gemme nascoste — Premium
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -108,7 +152,7 @@ function TabButton({ active, onClick, children, icon, badge }) {
   );
 }
 
-export default function VinoAI({ user, supabase, isPremium = false }) {
+export default function VinoAI({ user, supabase, isPremium = false, isGuest = false, guestQuestions = 0, onGuestQuestion, onGuestSignup }) {
   const [tab, setTab] = useState("chat");
   const [messages, setMessages] = useState([{ role: "assistant", content: "Benvenuto. Sono il tuo sommelier personale. Chiedimi tutto sul mondo del vino: abbinamenti, annate, cantine, o cosa aprire stasera." }]);
   const [input, setInput] = useState("");
@@ -125,6 +169,8 @@ export default function VinoAI({ user, supabase, isPremium = false }) {
   const [geoWelcome, setGeoWelcome] = useState("");
   const [geoCity, setGeoCity] = useState("");
   const [showIntel, setShowIntel] = useState(false);
+  const [restaurantContext, setRestaurantContext] = useState(null); // { name, city }
+  const [showQuickActions, setShowQuickActions] = useState(false);
   const [wineAction, setWineAction] = useState(null); // { wineName, advice }
   const bottomRef = useRef();
 
@@ -171,9 +217,9 @@ export default function VinoAI({ user, supabase, isPremium = false }) {
       const photoUrl = urlData.publicUrl;
 
       // 2. Chiedi all'AI di estrarre nome ristorante e città dalla foto
-      const extractRes = await fetch("/api/chat", {
+      const extractRes = await fetch(SUPABASE_EDGE_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SUPABASE_ANON_KEY}`, "apikey": SUPABASE_ANON_KEY },
         body: JSON.stringify({
           messages: [{
             role: "user",
@@ -221,6 +267,8 @@ export default function VinoAI({ user, supabase, isPremium = false }) {
   async function sendMessage(text) {
     const userText = text || input.trim();
     if ((!userText && !chatImage) || loading) return;
+    // Guest limit: 3 questions
+    if (isGuest && guestQuestions >= 3) return;
     setInput("");
     const imageToSend = chatImage;
     setChatImage(null);
@@ -232,6 +280,16 @@ export default function VinoAI({ user, supabase, isPremium = false }) {
     };
     const newMsgs = [...messages, userMsg];
     setMessages(newMsgs);
+    if (isGuest && onGuestQuestion) onGuestQuestion();
+    // Detect restaurant mention
+    const lowerText = (userText || "").toLowerCase();
+    const restaurantKeywords = ["bellevue","ristorante","osteria","trattoria","hotel","enoteca"];
+    if (restaurantKeywords.some(k => lowerText.includes(k))) {
+      setShowQuickActions(true);
+      // Try to extract restaurant name simply
+      const match = userText.match(/(?:al|all['’]|allo|alla|al ristorante|all['’]hotel|hotel)\s+([A-Z][a-zA-Z\s]+?)(?:\s+di|\s+a\s|\.|,|$)/i);
+      if (match) setRestaurantContext({ name: match[1].trim(), city: geoCity || "" });
+    }
     setLoading(true);
     try {
       const apiMsgs = newMsgs.map(m => {
@@ -266,9 +324,9 @@ export default function VinoAI({ user, supabase, isPremium = false }) {
       if (hasBought) {
         // Estrai nome vino con AI
         try {
-          const extractRes = await fetch("/api/chat", {
+          const extractRes = await fetch(SUPABASE_EDGE_URL, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SUPABASE_ANON_KEY}`, "apikey": SUPABASE_ANON_KEY },
             body: JSON.stringify({
               jsonMode: true,
               messages: [{ role: "user", content: `Dal testo: "${userText}" — estrai SOLO il nome del vino menzionato. Rispondi SOLO con JSON: {"wine":"nome vino","year":"annata o null"}` }]
@@ -382,7 +440,34 @@ export default function VinoAI({ user, supabase, isPremium = false }) {
               </div>
             )}
             <div style={{ flex: 1, overflowY: "auto", padding: "16px", background: `${MUTED}22`, borderRadius: 16, border: `1px solid ${GOLD}11`, minHeight: 320, maxHeight: 460 }}>
-              {messages.map((m, i) => <ChatBubble key={i} msg={m} />)}
+              {/* Banner ospite */}
+              {isGuest && (
+                <div style={{ marginBottom: 12, padding: "12px 16px", borderRadius: 12, background: guestQuestions >= 3 ? "#3A1A1A" : `${MUTED}44`, border: `1px solid ${guestQuestions >= 3 ? "#8A2A2A" : GOLD + "33"}`, display: "flex", flexDirection: "column", gap: 8 }}>
+                  {guestQuestions < 3 ? (
+                    <div style={{ color: GOLD, fontSize: 13, textAlign: "center" }}>
+                      👋 Modalità ospite — {3 - guestQuestions} domand{3 - guestQuestions === 1 ? "a" : "e"} rimanenti
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ color: CREAM, fontSize: 14, textAlign: "center", fontFamily: "'Cormorant Garamond', serif" }}>
+                        🍷 Hai usato le 3 domande gratuite!
+                      </div>
+                      <div style={{ color: CREAM + "88", fontSize: 12, textAlign: "center" }}>
+                        Registrati gratis per continuare a chattare con il sommelier
+                      </div>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <button onClick={onGuestSignup} style={{ flex: 1, padding: "10px", borderRadius: 10, background: `linear-gradient(135deg, #6B1A2A, #9B2335)`, border: "none", color: CREAM, fontFamily: "'Cormorant Garamond', serif", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                          🆓 Registrati gratis
+                        </button>
+                        <button onClick={async () => { const res = await fetch("/api/checkout", { method: "POST" }); const d = await res.json(); if (d.url) window.location.href = d.url; }} style={{ flex: 1, padding: "10px", borderRadius: 10, background: `linear-gradient(135deg, #C9A84C, #8B6914)`, border: "none", color: "#0D0A08", fontFamily: "'Cormorant Garamond', serif", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                          ⭐ Premium €4.99
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+              {messages.map((m, i) => <ChatBubble key={i} msg={m} isPremium={isPremium} isAdmin={isAdmin} onQuickAction={sendMessage} />)}
               {loading && <div style={{ padding: "8px 0 0 46px" }}><Spinner /></div>}
               <div ref={bottomRef} />
             </div>
@@ -429,7 +514,7 @@ export default function VinoAI({ user, supabase, isPremium = false }) {
                   <button onClick={() => setChatImage(null)} style={{ position: "absolute", top: -6, right: -6, background: BURGUNDY, border: "none", borderRadius: "50%", width: 18, height: 18, color: CREAM, fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
                 </div>
               )}
-              <textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} placeholder={chatImage ? "Aggiungi un messaggio (opzionale)..." : "Chiedi al tuo sommelier..."} rows={2} style={{ ...inputStyle, resize: "none", flex: 1, padding: "12px 16px", borderRadius: 12, lineHeight: 1.5, fontSize: 14 }} />
+              <textarea value={isGuest && guestQuestions >= 3 ? "" : input} onChange={e => !(isGuest && guestQuestions >= 3) && setInput(e.target.value)} disabled={isGuest && guestQuestions >= 3} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} placeholder={chatImage ? "Aggiungi un messaggio (opzionale)..." : "Chiedi al tuo sommelier..."} rows={2} style={{ ...inputStyle, resize: "none", flex: 1, padding: "12px 16px", borderRadius: 12, lineHeight: 1.5, fontSize: 14 }} />
               <input ref={imageInputRef} type="file" accept="image/*" capture="environment" onChange={handleImageUpload} style={{ display: "none" }} />
               <button onClick={() => imageInputRef.current?.click()} title="Fotografa la carta dei vini" style={{ padding: "12px 14px", borderRadius: 12, background: chatImage ? `linear-gradient(135deg, ${GOLD}, #A07830)` : `${MUTED}88`, border: `1px solid ${GOLD}44`, color: CREAM, cursor: "pointer", fontSize: 18, flexShrink: 0 }}>📷</button>
               <button onClick={() => sendMessage()} disabled={loading || (!input.trim() && !chatImage)} style={{ padding: "12px 22px", borderRadius: 12, background: loading || (!input.trim() && !chatImage) ? `${MUTED}88` : `linear-gradient(135deg, ${BURGUNDY}, #9B2335)`, border: `1px solid ${BURGUNDY}`, color: CREAM, cursor: loading ? "not-allowed" : "pointer", fontFamily: "'Cormorant Garamond', serif", fontSize: 15, transition: "all 0.2s", whiteSpace: "nowrap" }}>Invia →</button>
