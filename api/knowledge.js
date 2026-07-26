@@ -1,84 +1,44 @@
-export default async function handler(req, res) {
-  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+export const handler = async (event, context) => {
+  const headers = {
+    "Content-Type": "application/json",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "Content-Type",
+  };
 
-  const { action, data } = req.body;
+  if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers, body: "" };
+  if (event.httpMethod !== "POST") return { statusCode: 405, headers, body: JSON.stringify({ error: "Method not allowed" }) };
 
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_KEY;
+  const SUPABASE_URL = process.env.SUPABASE_URL;
+  const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
   try {
-    // Salva un nuovo contenuto nel knowledge base
-    if (action === "save") {
-      const { title, content, category, source } = data;
+    const { action, title, content, category, source } = JSON.parse(event.body || "{}");
 
-      // Genera embedding con OpenAI (o Anthropic non supporta embeddings, usiamo un workaround)
-      // Utilizziamo la text-embedding-ada-002 di OpenAI oppure salviamo senza embedding per ora
-      // e usiamo full-text search di Postgres
-      
-      const response = await fetch(`${supabaseUrl}/rest/v1/knowledge`, {
+    if (action === "save") {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/knowledge`, {
         method: "POST",
         headers: {
+          "apikey": SUPABASE_KEY,
+          "Authorization": `Bearer ${SUPABASE_KEY}`,
           "Content-Type": "application/json",
-          "apikey": supabaseKey,
-          "Authorization": `Bearer ${supabaseKey}`,
           "Prefer": "return=representation",
         },
-        body: JSON.stringify({ title, content, category, source }),
+        body: JSON.stringify({ title, content, category: category || "generale", source: source || "manuale" }),
       });
-
-      const saved = await response.json();
-      return res.status(200).json({ success: true, id: saved[0]?.id });
+      const data = await res.json();
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true, data }) };
     }
 
-    // Cerca nel knowledge base (full-text search)
-    if (action === "search") {
-      const { query } = data;
-      
-      const response = await fetch(
-        `${supabaseUrl}/rest/v1/knowledge?select=*&content=ilike.*${encodeURIComponent(query)}*&limit=5`,
-        {
-          headers: {
-            "apikey": supabaseKey,
-            "Authorization": `Bearer ${supabaseKey}`,
-          },
-        }
-      );
-      const results = await response.json();
-      return res.status(200).json({ results });
-    }
-
-    // Lista tutti i contenuti (per admin)
     if (action === "list") {
-      const response = await fetch(
-        `${supabaseUrl}/rest/v1/knowledge?select=id,title,category,source,created_at&order=created_at.desc`,
-        {
-          headers: {
-            "apikey": supabaseKey,
-            "Authorization": `Bearer ${supabaseKey}`,
-          },
-        }
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/knowledge?select=id,title,category,source,created_at&order=created_at.desc&limit=50`,
+        { headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` } }
       );
-      const items = await response.json();
-      return res.status(200).json({ items });
+      const data = await res.json();
+      return { statusCode: 200, headers, body: JSON.stringify({ items: data }) };
     }
 
-    // Elimina un contenuto
-    if (action === "delete") {
-      const { id } = data;
-      await fetch(`${supabaseUrl}/rest/v1/knowledge?id=eq.${id}`, {
-        method: "DELETE",
-        headers: {
-          "apikey": supabaseKey,
-          "Authorization": `Bearer ${supabaseKey}`,
-        },
-      });
-      return res.status(200).json({ success: true });
-    }
-
-    return res.status(400).json({ error: "Azione non valida" });
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: err.message });
+    return { statusCode: 400, headers, body: JSON.stringify({ error: "Azione non valida" }) };
+  } catch (e) {
+    return { statusCode: 500, headers, body: JSON.stringify({ error: e.message }) };
   }
-}
+};
