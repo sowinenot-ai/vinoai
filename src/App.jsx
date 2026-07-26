@@ -40,7 +40,7 @@ const SUGGESTIONS = [
 const SUPABASE_EDGE_URL = "https://qnawdmghgwgvhzqzarrw.supabase.co/functions/v1/analyze-wine";
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_KEY;
 
-async function askClaude(messages, onChunk) {
+async function askClaude(messages, onChunk, userEmail) {
   const res = await fetch(SUPABASE_EDGE_URL, {
     method: "POST",
     headers: {
@@ -48,7 +48,7 @@ async function askClaude(messages, onChunk) {
       "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
       "apikey": SUPABASE_ANON_KEY,
     },
-    body: JSON.stringify({ messages, userEmail: user?.email }),
+    body: JSON.stringify({ messages, userEmail: userEmail || null }),
   });
   if (!res.ok) throw new Error("Errore server");
   const reader = res.body.getReader();
@@ -313,7 +313,7 @@ export default function VinoAI({ user, supabase, isPremium = false, isGuest = fa
           updated[updated.length - 1] = { role: "assistant", content: partial };
           return updated;
         });
-      });
+      }, user?.email);
 
       // Salva foto e ristorante in mappa in background
       if (imageToSend) saveMenuPhotoToMap(imageToSend, reply);
