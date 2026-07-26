@@ -48,7 +48,7 @@ async function askClaude(messages, onChunk) {
       "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
       "apikey": SUPABASE_ANON_KEY,
     },
-    body: JSON.stringify({ messages }),
+    body: JSON.stringify({ messages, userEmail: user?.email }),
   });
   if (!res.ok) throw new Error("Errore server");
   const reader = res.body.getReader();
