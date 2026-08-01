@@ -8,23 +8,24 @@ export const handler = async (event) => {
     return { statusCode: 405, headers, body: JSON.stringify({ error: "Method not allowed" }) };
   }
 
-  const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
   const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
   const SUPABASE_URL = process.env.SUPABASE_URL;
   const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
   try {
-    const payload = JSON.parse(event.body || "{}");
-    const stripeEvent = payload;
+    const stripeEvent = JSON.parse(event.body || "{}");
 
-    // Gestisci i diversi eventi Stripe
+    // Pagamento completato → attiva premium
     if (stripeEvent.type === "checkout.session.completed") {
       const session = stripeEvent.data.object;
       const customerEmail = session.customer_details?.email;
       const customerId = session.customer;
+      const subscriptionId = session.subscription;
+      const periodEnd = session.expires_at
+        ? new Date(session.expires_at * 1000).toISOString()
+        : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
       if (customerEmail) {
-        // Salva l'utente come premium su Supabase
         await fetch(`${SUPABASE_URL}/rest/v1/premium_users`, {
           method: "POST",
           headers: {
@@ -35,14 +36,18 @@ export const handler = async (event) => {
           },
           body: JSON.stringify({
             email: customerEmail,
-            stripe_id: customerId,
-            active: true,
+            stripe_customer_id: customerId,
+            stripe_subscription_id: subscriptionId,
+            status: "active",
+            plan_tier: "premium",
+            current_period_end: periodEnd,
           }),
         });
-        console.log(`✅ Utente premium attivato: ${customerEmail}`);
+        console.log(`✅ Premium attivato: ${customerEmail}`);
       }
     }
 
+    // Abbonamento cancellato → disattiva premium
     if (stripeEvent.type === "customer.subscription.deleted") {
       const subscription = stripeEvent.data.object;
       const customerId = subscription.customer;
@@ -55,16 +60,18 @@ export const handler = async (event) => {
       const customerEmail = customer.email;
 
       if (customerEmail) {
-        // Disattiva il premium su Supabase
-        await fetch(`${SUPABASE_URL}/rest/v1/premium_users?email=eq.${encodeURIComponent(customerEmail)}`, {
-          method: "PATCH",
-          headers: {
-            "apikey": SUPABASE_KEY,
-            "Authorization": `Bearer ${SUPABASE_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ active: false }),
-        });
+        await fetch(
+          `${SUPABASE_URL}/rest/v1/premium_users?email=eq.${encodeURIComponent(customerEmail)}`,
+          {
+            method: "PATCH",
+            headers: {
+              "apikey": SUPABASE_KEY,
+              "Authorization": `Bearer ${SUPABASE_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ status: "canceled" }),
+          }
+        );
         console.log(`❌ Premium disattivato: ${customerEmail}`);
       }
     }
