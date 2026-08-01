@@ -159,6 +159,11 @@ export default function VinoAI({ user, supabase, isPremium = false, isGuest = fa
     const params = new URLSearchParams(window.location.search);
     return params.get("premium") === "success";
   });
+  const [showEarlyBird, setShowEarlyBird] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("invite") === "EARLYBIRD2024";
+  });
+  const [earlyBirdStatus, setEarlyBirdStatus] = useState(null); // null | "activated" | "full" | "already_active" | "loading"
   const [messages, setMessages] = useState([{ role: "assistant", content: "Benvenuto. Sono il tuo sommelier personale. Chiedimi tutto sul mondo del vino: abbinamenti, annate, cantine, o cosa aprire stasera." }]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -541,6 +546,77 @@ export default function VinoAI({ user, supabase, isPremium = false, isGuest = fa
 
       {showIntel && <RestaurantIntel city={geoCity} onClose={() => setShowIntel(false)} />}
       {showAdmin && <AdminPanel user={user} onClose={() => setShowAdmin(false)} />}
+
+      {/* POPUP EARLY BIRD */}
+      {showEarlyBird && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.9)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+          <div style={{ background: `linear-gradient(135deg, ${MUTED}, #1A0D0A)`, border: `1px solid ${GOLD}55`, borderRadius: 24, padding: 36, maxWidth: 420, width: "100%", textAlign: "center", animation: "fadeUp 0.4s ease" }}>
+            {earlyBirdStatus === null && (
+              <>
+                <div style={{ fontSize: 52, marginBottom: 12 }}>🎁</div>
+                <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, color: GOLD, margin: "0 0 8px" }}>Early Bird Access</h2>
+                <p style={{ color: `${CREAM}88`, fontSize: 13, marginBottom: 6 }}>Sei tra i primi invitati di SoWineNot.</p>
+                <p style={{ color: `${CREAM}66`, fontSize: 12, marginBottom: 24 }}>Attiva il <strong style={{ color: GOLD }}>Premium gratis</strong> con il tuo account.</p>
+                <button
+                  onClick={async () => {
+                    if (!user?.email) return;
+                    setEarlyBirdStatus("loading");
+                    try {
+                      const res = await fetch("/api/earlybird", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ email: user.email, code: "EARLYBIRD2024" }),
+                      });
+                      const data = await res.json();
+                      setEarlyBirdStatus(data.message || "activated");
+                    } catch {
+                      setEarlyBirdStatus("error");
+                    }
+                  }}
+                  style={{ padding: "13px 32px", background: `linear-gradient(135deg, ${GOLD}, #8B6914)`, border: "none", borderRadius: 12, color: DARK, fontFamily: "'Cormorant Garamond', serif", fontSize: 17, fontWeight: 700, cursor: "pointer", width: "100%" }}>
+                  🎉 Attiva Premium Gratis
+                </button>
+                <button onClick={() => { setShowEarlyBird(false); window.history.replaceState({}, "", "/"); }} style={{ background: "none", border: "none", color: `${CREAM}44`, fontSize: 12, cursor: "pointer", marginTop: 14 }}>
+                  Non ora
+                </button>
+              </>
+            )}
+            {earlyBirdStatus === "loading" && <div style={{ color: CREAM, fontSize: 16 }}>⏳ Attivazione in corso...</div>}
+            {earlyBirdStatus === "activated" && (
+              <>
+                <div style={{ fontSize: 52, marginBottom: 12 }}>🥂</div>
+                <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 24, color: GOLD, margin: "0 0 12px" }}>Premium Attivato!</h2>
+                <p style={{ color: `${CREAM}88`, fontSize: 13, marginBottom: 24 }}>Benvenuto tra i primi utenti di SoWineNot. Hai accesso completo a gemme, carte vini e molto altro.</p>
+                <button onClick={() => { setShowEarlyBird(false); window.history.replaceState({}, "", "/"); }}
+                  style={{ padding: "13px 32px", background: `linear-gradient(135deg, ${GOLD}, #8B6914)`, border: "none", borderRadius: 12, color: DARK, fontFamily: "'Cormorant Garamond', serif", fontSize: 17, fontWeight: 700, cursor: "pointer" }}>
+                  Inizia a esplorare 🍷
+                </button>
+              </>
+            )}
+            {earlyBirdStatus === "already_active" && (
+              <>
+                <div style={{ fontSize: 52, marginBottom: 12 }}>✅</div>
+                <p style={{ color: CREAM, fontSize: 15, marginBottom: 20 }}>Il tuo account è già Premium!</p>
+                <button onClick={() => { setShowEarlyBird(false); window.history.replaceState({}, "", "/"); }}
+                  style={{ padding: "10px 24px", background: `linear-gradient(135deg, ${GOLD}, #8B6914)`, border: "none", borderRadius: 12, color: DARK, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                  Vai all'app 🍷
+                </button>
+              </>
+            )}
+            {earlyBirdStatus === "full" && (
+              <>
+                <div style={{ fontSize: 52, marginBottom: 12 }}>😔</div>
+                <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, color: CREAM, margin: "0 0 12px" }}>Posti Esauriti</h2>
+                <p style={{ color: `${CREAM}66`, fontSize: 13, marginBottom: 20 }}>I 10 posti Early Bird sono stati tutti presi. Puoi comunque accedere al Premium a €4.99/mese.</p>
+                <button onClick={async () => { const r = await fetch("/api/checkout", { method: "POST" }); const d = await r.json(); if (d.url) window.location.href = d.url; }}
+                  style={{ padding: "10px 24px", background: `linear-gradient(135deg, ${GOLD}, #8B6914)`, border: "none", borderRadius: 12, color: DARK, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                  ⭐ Premium €4.99/mese
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* POPUP BENVENUTO PREMIUM */}
       {showPremiumWelcome && (
