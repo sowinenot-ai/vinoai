@@ -1,4 +1,4 @@
-export const handler = async (event, context) => {
+export const handler = async (event) => {
   const headers = {
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": "*",
@@ -21,7 +21,8 @@ export const handler = async (event, context) => {
     if (email === ADMIN_EMAIL) return { statusCode: 200, headers, body: JSON.stringify({ premium: true }) };
 
     if (action === "check") {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/premium_users?email=eq.${encodeURIComponent(email)}&active=eq.true&select=email`,
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/premium_users?email=eq.${encodeURIComponent(email)}&status=eq.active&select=email`,
         { headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` } }
       );
       const data = await res.json();
@@ -31,8 +32,13 @@ export const handler = async (event, context) => {
     if (action === "activate") {
       await fetch(`${SUPABASE_URL}/rest/v1/premium_users`, {
         method: "POST",
-        headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", "Prefer": "resolution=merge-duplicates" },
-        body: JSON.stringify({ email, active: true }),
+        headers: {
+          "apikey": SUPABASE_KEY,
+          "Authorization": `Bearer ${SUPABASE_KEY}`,
+          "Content-Type": "application/json",
+          "Prefer": "resolution=merge-duplicates",
+        },
+        body: JSON.stringify({ email, status: "active", plan_tier: "premium" }),
       });
       return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
     }
