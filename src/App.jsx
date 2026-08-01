@@ -585,10 +585,20 @@ export default function VinoAI({ user, supabase, isPremium = false, isGuest = fa
             {earlyBirdStatus === "activated" && (
               <>
                 <div style={{ fontSize: 52, marginBottom: 12 }}>🥂</div>
-                <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 24, color: GOLD, margin: "0 0 12px" }}>Premium Attivato!</h2>
-                <p style={{ color: `${CREAM}88`, fontSize: 13, marginBottom: 24 }}>Benvenuto tra i primi utenti di SoWineNot. Hai accesso completo a gemme, carte vini e molto altro.</p>
+                <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, color: GOLD, margin: "0 0 10px" }}>Sei uno dei Fondatori</h2>
+                <div style={{ background: `${GOLD}11`, border: `1px solid ${GOLD}33`, borderRadius: 12, padding: "12px 16px", marginBottom: 16 }}>
+                  <p style={{ color: GOLD, fontSize: 13, margin: 0, fontStyle: "italic", fontFamily: "'Cormorant Garamond', serif", lineHeight: 1.6 }}>
+                    "Sei tra le prime 10 persone ad accedere a SoWineNot. Questo non è solo un account — è un riconoscimento. Hai creduto nel progetto prima di tutti."
+                  </p>
+                </div>
+                <p style={{ color: `${CREAM}88`, fontSize: 13, marginBottom: 8, lineHeight: 1.6 }}>
+                  Il tuo accesso <strong style={{ color: GOLD }}>Premium è attivo e gratuito</strong>. Da oggi puoi scoprire gemme nascoste, analizzare carte dei vini e chattare con il tuo sommelier personale senza limiti.
+                </p>
+                <p style={{ color: `${CREAM}55`, fontSize: 11, marginBottom: 24 }}>
+                  Il tuo feedback ci aiuterà a costruire il miglior strumento enologico al mondo. 🍷
+                </p>
                 <button onClick={() => { setShowEarlyBird(false); window.history.replaceState({}, "", "/"); }}
-                  style={{ padding: "13px 32px", background: `linear-gradient(135deg, ${GOLD}, #8B6914)`, border: "none", borderRadius: 12, color: DARK, fontFamily: "'Cormorant Garamond', serif", fontSize: 17, fontWeight: 700, cursor: "pointer" }}>
+                  style={{ padding: "13px 32px", background: `linear-gradient(135deg, ${GOLD}, #8B6914)`, border: "none", borderRadius: 12, color: DARK, fontFamily: "'Cormorant Garamond', serif", fontSize: 17, fontWeight: 700, cursor: "pointer", width: "100%" }}>
                   Inizia a esplorare 🍷
                 </button>
               </>
