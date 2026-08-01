@@ -155,6 +155,10 @@ function TabButton({ active, onClick, children, icon, badge }) {
 export default function VinoAI({ user, supabase, isPremium = false, isGuest = false, guestQuestions = 0, onGuestQuestion, onGuestSignup }) {
   const isAdmin = user?.email === "lanzifederico09@gmail.com";
   const [tab, setTab] = useState("chat");
+  const [showPremiumWelcome, setShowPremiumWelcome] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("premium") === "success";
+  });
   const [messages, setMessages] = useState([{ role: "assistant", content: "Benvenuto. Sono il tuo sommelier personale. Chiedimi tutto sul mondo del vino: abbinamenti, annate, cantine, o cosa aprire stasera." }]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -537,6 +541,41 @@ export default function VinoAI({ user, supabase, isPremium = false, isGuest = fa
 
       {showIntel && <RestaurantIntel city={geoCity} onClose={() => setShowIntel(false)} />}
       {showAdmin && <AdminPanel user={user} onClose={() => setShowAdmin(false)} />}
+
+      {/* POPUP BENVENUTO PREMIUM */}
+      {showPremiumWelcome && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+          <div style={{ background: `linear-gradient(135deg, ${MUTED}, #1A0D0A)`, border: `1px solid ${GOLD}55`, borderRadius: 24, padding: 36, maxWidth: 420, width: "100%", textAlign: "center", animation: "fadeUp 0.4s ease" }}>
+            <div style={{ fontSize: 56, marginBottom: 16 }}>🎉</div>
+            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, color: GOLD, margin: "0 0 8px", fontWeight: 600 }}>Benvenuto nel Premium!</h2>
+            <p style={{ color: `${CREAM}88`, fontSize: 14, marginBottom: 24 }}>Il tuo abbonamento è attivo. Ecco cosa puoi fare da ora:</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 28, textAlign: "left" }}>
+              {[
+                ["💎", "Gemme Nascoste", "Scopri i vini con miglior rapporto qualità/prezzo in ogni ristorante"],
+                ["📄", "Analisi PDF", "Carica carte dei vini e il sommelier AI le analizza per te"],
+                ["🗺️", "Mappa Completa", "Vedi prezzi, markup e perle nascoste di ogni ristorante nel mondo"],
+                ["🤖", "Chat Illimitata", "Il sommelier ricorda le tue preferenze e migliora nel tempo"],
+              ].map(([icon, title, desc]) => (
+                <div key={title} style={{ display: "flex", gap: 12, padding: "10px 14px", background: `${GOLD}0D`, border: `1px solid ${GOLD}22`, borderRadius: 10 }}>
+                  <span style={{ fontSize: 20 }}>{icon}</span>
+                  <div>
+                    <div style={{ color: CREAM, fontSize: 13, fontWeight: 600 }}>{title}</div>
+                    <div style={{ color: `${CREAM}66`, fontSize: 11, marginTop: 2 }}>{desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => {
+                setShowPremiumWelcome(false);
+                window.history.replaceState({}, "", "/");
+              }}
+              style={{ padding: "13px 32px", background: `linear-gradient(135deg, ${GOLD}, #8B6914)`, border: "none", borderRadius: 12, color: DARK, fontFamily: "'Cormorant Garamond', serif", fontSize: 17, fontWeight: 700, cursor: "pointer" }}>
+              Inizia a esplorare 🍷
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
