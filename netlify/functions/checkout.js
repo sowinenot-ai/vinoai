@@ -1,4 +1,4 @@
-export const handler = async (event, context) => {
+export const handler = async (event) => {
   const headers = {
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": "*",
@@ -12,7 +12,6 @@ export const handler = async (event, context) => {
   const SITE_URL = process.env.URL || "https://sowinenot.netlify.app";
 
   try {
-    // Crea checkout session Stripe
     const res = await fetch("https://api.stripe.com/v1/checkout/sessions", {
       method: "POST",
       headers: {
@@ -21,8 +20,8 @@ export const handler = async (event, context) => {
       },
       body: new URLSearchParams({
         "mode": "subscription",
-        "success_url": `${SITE_URL}?success=true`,
-        "cancel_url": `${SITE_URL}?canceled=true`,
+        "success_url": `${SITE_URL}?premium=success`,
+        "cancel_url": `${SITE_URL}?premium=canceled`,
         "line_items[0][price_data][currency]": "eur",
         "line_items[0][price_data][product_data][name]": "SoWineNot Premium",
         "line_items[0][price_data][product_data][description]": "Accesso completo a gemme, carte vini e sommelier AI",
