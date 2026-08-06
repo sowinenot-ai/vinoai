@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { Analytics } from "@vercel/analytics/react";
 import AuthScreen from "./Auth";
 import VinoAI from "./App";
 
@@ -56,7 +57,17 @@ export default function AppWrapper() {
     );
   }
 
-  if (!user) return <AuthScreen onLogin={setUser} />;
+  if (!user) return (
+    <>
+      <AuthScreen onLogin={setUser} />
+      <Analytics />
+    </>
+  );
 
-  return <VinoAI user={user} supabase={supabase} isPremium={isPremium} />;
+  return (
+    <>
+      <VinoAI user={user} supabase={supabase} isPremium={isPremium} />
+      <Analytics />
+    </>
+  );
 }
